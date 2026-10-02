@@ -45,13 +45,6 @@ export async function prepareUpload(pieceId: string, fileName: string): Promise<
   return { demo: false, path: data.path, token: data.token };
 }
 
-export async function confirmUpload(pieceId: string, path: string, name: string) {
-  await session();
-  const u = await repo.addUpload(pieceId, path, name);
-  revalidatePath("/", "layout");
-  return u;
-}
-
 export async function confirmReferenceUpload(refId: string, path: string) {
   await session();
   await repo.uploadReference(refId, path);

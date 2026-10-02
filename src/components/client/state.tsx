@@ -5,7 +5,7 @@ import * as agencyActions from "@/app/agencia/actions";
 import * as actions from "@/app/actions";
 import { supabaseBrowser } from "@/lib/supabase/browser";
 import { addDays, dayIndex, dayKey, DEADLINE_TIME, zonedTime, type DayKey } from "@/lib/dates";
-import type { Agency, Channel, Client, PieceFull, Status, Upload } from "@/lib/types";
+import type { Agency, Channel, Client, PieceFull, Status } from "@/lib/types";
 
 export type UploadState = { state: "uploading" } | { state: "done"; at: string } | { state: "error"; retry: () => void };
 
@@ -44,7 +44,6 @@ interface Ctx {
   markRecorded: (id: string) => void;
   toggleShot: (pieceId: string, shotId: string) => void;
   toggleBlock: (pieceId: string, blockId: string) => void;
-  uploadMaterial: (pieceId: string, files: File[]) => Promise<boolean>;
   uploadReference: (pieceId: string, refId: string, file: File) => void;
   uploads: Record<string, UploadState>;
   toast: Toast | null;
@@ -160,32 +159,6 @@ export function ClientState({
     actions.toggleBlock(blockId, value).catch(fail);
   }, [readOnly, blocked, pieces, patch, fail]);
 
-  const uploadMaterial = useCallback(async (pieceId: string, files: File[]): Promise<boolean> => {
-    if (!files.length) return false;
-    if (readOnly) {
-      blocked();
-      return false;
-    }
-    const run = async (): Promise<boolean> => {
-      setUploads((u) => ({ ...u, [pieceId]: { state: "uploading" } }));
-      try {
-        const done: Upload[] = [];
-        for (const f of files) {
-          const path = await putFile(pieceId, f);
-          done.push(await actions.confirmUpload(pieceId, path, f.name));
-        }
-        patch(pieceId, (p) => ({ ...p, status: p.status === "grabar" || p.status === "rehacer" ? "grabado" : p.status, uploads: [...p.uploads, ...done] }));
-        setUploads((u) => ({ ...u, [pieceId]: { state: "done", at: new Date().toISOString() } }));
-        return true;
-      } catch (e) {
-        console.error(e);
-        setUploads((u) => ({ ...u, [pieceId]: { state: "error", retry: () => void run() } }));
-        return false;
-      }
-    };
-    return run();
-  }, [readOnly, blocked, patch]);
-
   const uploadReference = useCallback((pieceId: string, refId: string, file: File) => {
     if (readOnly) return blocked();
     const key = `ref:${refId}`;
@@ -239,8 +212,8 @@ export function ClientState({
 
   const value = useMemo<Ctx>(() => ({
     client, agency, tz: client.tz, now, pieces, base, readOnly, blocked, edit, byId, filter, setFilter, selectedId, select,
-    markRecorded, toggleShot, toggleBlock, uploadMaterial, uploadReference, uploads, toast, showToast, dismissToast,
-  }), [client, agency, now, pieces, base, readOnly, blocked, edit, byId, filter, selectedId, markRecorded, toggleShot, toggleBlock, uploadMaterial, uploadReference, uploads, toast, showToast, dismissToast]);
+    markRecorded, toggleShot, toggleBlock, uploadReference, uploads, toast, showToast, dismissToast,
+  }), [client, agency, now, pieces, base, readOnly, blocked, edit, byId, filter, selectedId, markRecorded, toggleShot, toggleBlock, uploadReference, uploads, toast, showToast, dismissToast]);
 
   return <C.Provider value={value}>{children}</C.Provider>;
 }

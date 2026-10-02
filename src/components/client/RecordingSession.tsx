@@ -51,7 +51,7 @@ export function RecordingSession() {
           {queue.map((p, i) => (
             <SessionPiece key={p.id} p={p} n={i + 1} onOpenRef={setViewer} onRead={() => setReading(p)} />
           ))}
-          <BulkUpload queue={queue} />
+          <DriveUpload />
         </div>
       )}
 
@@ -152,53 +152,19 @@ function SessionPiece({ p, n, onOpenRef, onRead }: { p: PieceFull; n: number; on
   );
 }
 
-/** Pick the files for each piece, then upload everything at once. */
-function BulkUpload({ queue }: { queue: PieceFull[] }) {
-  const { uploadMaterial, uploads, showToast } = useApp();
-  const [files, setFiles] = useState<Record<string, File[]>>({});
-  const [busy, setBusy] = useState(false);
-  const total = Object.values(files).reduce((n, f) => n + f.length, 0);
-
-  const uploadAll = async () => {
-    setBusy(true);
-    const entries = Object.entries(files).filter(([, f]) => f.length);
-    const results = await Promise.all(entries.map(([id, f]) => uploadMaterial(id, f)));
-    setBusy(false);
-    const ok = results.filter(Boolean).length;
-    setFiles(Object.fromEntries(entries.filter((_, i) => !results[i])));
-    showToast(ok === entries.length ? "Material recibido ✓" : `Se subieron ${ok} de ${entries.length}. Reintenta las que fallaron.`);
-  };
-
+/** All the material goes to the agency's Drive folder; then each piece is marked as recorded above. */
+function DriveUpload() {
+  const { client } = useApp();
+  if (!client.drive_url) return null;
   return (
     <section className="flex flex-col gap-3 rounded-2xl border p-4" style={{ borderColor: "rgba(255,255,255,0.08)", background: "#121315" }}>
       <div className="flex flex-col gap-1">
-        <span className="text-base font-semibold">Subir todo el material</span>
-        <span className="text-[13px] leading-[1.45] text-[#9DA1A8]">Elige los vídeos de cada pieza y súbelos de una vez.</span>
+        <span className="text-base font-semibold">Sube todo el material</span>
+        <span className="text-[13px] leading-[1.45] text-[#9DA1A8]">Mete los vídeos en la carpeta de Drive y marca cada pieza como grabada.</span>
       </div>
-      {queue.map((p) => {
-        const u = uploads[p.id];
-        const picked = files[p.id]?.length ?? 0;
-        return (
-          <label key={p.id} className="flex min-h-[52px] cursor-pointer items-center gap-3 rounded-xl bg-surface-3 px-3 py-2">
-            <span className="h-6 w-[3px] flex-none rounded-sm" style={{ background: CHANNELS[p.channel].color }} />
-            <span className="flex min-w-0 flex-1 flex-col">
-              <span className="text-sm font-medium">{p.title}</span>
-              <span className="text-xs" style={{ color: u?.state === "done" ? "#4FD98A" : u?.state === "error" ? "#FF5C5C" : "#7C8087" }}>
-                {u?.state === "uploading" ? "Subiendo…" : u?.state === "done" ? "Recibido ✓" : u?.state === "error" ? "No se pudo subir" : picked ? `${picked} ${plural(picked, "archivo", "archivos")}` : p.uploads.length ? "Recibido ✓" : "Sin archivos"}
-              </span>
-            </span>
-            <span className="flex-none text-[13px] font-semibold text-amber">{picked ? "Cambiar" : "Elegir"}</span>
-            <input type="file" accept="video/*,image/*" multiple hidden onChange={(e) => { const f = Array.from(e.target.files ?? []); setFiles((cur) => ({ ...cur, [p.id]: f })); }} />
-          </label>
-        );
-      })}
-      <button
-        disabled={!total || busy}
-        onClick={uploadAll}
-        className="press h-[52px] cursor-pointer rounded-[14px] border-none bg-amber text-[15px] font-semibold text-amber-ink disabled:cursor-default disabled:opacity-40"
-      >
-        {busy ? "Subiendo…" : total ? `Subir todo (${total} ${plural(total, "archivo", "archivos")})` : "Subir todo"}
-      </button>
+      <a href={client.drive_url} target="_blank" rel="noopener noreferrer" className="press flex h-[52px] items-center justify-center rounded-[14px] bg-amber text-[15px] font-semibold text-amber-ink no-underline hover:text-amber-ink">
+        Abrir carpeta de Drive ↗
+      </a>
     </section>
   );
 }

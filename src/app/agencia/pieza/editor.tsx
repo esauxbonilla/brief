@@ -339,7 +339,7 @@ export function UploadsList({ piece }: { piece: PieceFull }) {
     const url = await A.fileLink(piece.id, path);
     window.open(url, "_blank", "noopener");
   };
-  if (!piece.uploads.length) return <span className="text-[13px] text-text-3">El cliente aún no ha subido material.</span>;
+  if (!piece.uploads.length) return <span className="text-[13px] text-text-3">El material lo sube a su carpeta de Drive.</span>;
   return (
     <div className="flex flex-col gap-1.5">
       {piece.uploads.map((u) => (

@@ -40,6 +40,10 @@ from agencies where name = 'Shadow Ops';
 
 **Avísale que entre pronto:** mientras nadie haya entrado con ese email, cualquiera que lo conozca puede quedarse con la cuenta.
 
+**Paso 3. Ponle su carpeta de Drive.** En el panel, entra al cliente y pega el link en **"Drive del cliente"** (arriba a la derecha) → **Guardar**. Ese es el botón **"Subir a Drive"** que él ve en cada pieza para mandarte los videos.
+
+> Comparte la carpeta de Drive con su correo (o con "cualquiera con el link") como **Editor**, para que pueda subir archivos.
+
 ---
 
 ## 2. Agregar a alguien de tu equipo (agencia)

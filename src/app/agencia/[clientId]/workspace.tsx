@@ -5,7 +5,8 @@ import { useCallback, useState } from "react";
 import { ClientApp } from "@/components/client/ClientApp";
 import type { Agency, Client, PieceFull } from "@/lib/types";
 import { PieceEditor } from "../pieza/editor";
-import { ClientBoard } from "../ui";
+import * as A from "../actions";
+import { Btn, ClientBoard, useAct } from "../ui";
 
 type View = "calendario" | "lista";
 
@@ -38,7 +39,10 @@ export function ClientWorkspace({ client, agency, pieces, serverNow }: {
             </button>
           ))}
         </div>
-        <Link href={`/calendario/${client.id}`} className="text-[13px] no-underline">Ver como lo ve {client.name.split(" ")[0]} →</Link>
+        <div className="flex flex-wrap items-center gap-4">
+          <DriveField client={client} />
+          <Link href={`/calendario/${client.id}`} className="text-[13px] no-underline">Ver como lo ve {client.name.split(" ")[0]} →</Link>
+        </div>
       </div>
 
       {view === "lista" ? (
@@ -57,5 +61,25 @@ export function ClientWorkspace({ client, agency, pieces, serverNow }: {
         />
       )}
     </div>
+  );
+}
+
+/** Where the client uploads the videos: their "Subir a Drive" button opens this link. */
+function DriveField({ client }: { client: Client }) {
+  const { pending, run } = useAct();
+  const [url, setUrl] = useState(client.drive_url ?? "");
+  const saved = (client.drive_url ?? "") === url.trim();
+  return (
+    <form className="flex items-center gap-2" onSubmit={(e) => { e.preventDefault(); run(() => A.setClientDrive(client.id, url)); }}>
+      <span className="text-[13px] text-text-3">Drive del cliente</span>
+      <input
+        value={url}
+        onChange={(e) => setUrl(e.target.value)}
+        placeholder="https://drive.google.com/…"
+        className="h-8 w-[260px] rounded-lg border bg-surface-2 px-2.5 text-[13px] text-text outline-none placeholder:text-text-4 focus:border-amber"
+        style={{ borderColor: client.drive_url ? "rgba(79,217,138,0.4)" : "rgba(245,184,61,0.5)" }}
+      />
+      {!saved && <Btn type="submit" kind="primary" disabled={pending}>{pending ? "Guardando…" : "Guardar"}</Btn>}
+    </form>
   );
 }

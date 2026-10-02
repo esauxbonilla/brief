@@ -24,6 +24,8 @@ export interface Client {
   initials: string;
   avatar_url: string | null;
   phone: string | null;
+  /** Drive folder where the client uploads the recorded material. */
+  drive_url?: string | null;
   /** IANA timezone; all "day" logic (week, hoy/mañana, 20:00) uses it. */
   tz: string;
 }

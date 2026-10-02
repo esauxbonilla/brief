@@ -170,6 +170,9 @@ export const demoRepo: Repo = {
     }
     if (status === "edicion") p.redo_reason = null;
   },
+  async setClientDrive(clientId, url) {
+    if (db().client.id === clientId) db().client.drive_url = url;
+  },
   async reschedule(id, publishAt, recordDueAt) {
     const p = piece(id);
     p.publish_at = publishAt;

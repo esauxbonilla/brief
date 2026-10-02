@@ -413,42 +413,43 @@ function RequestedRef({ r, state, onFile, onOpen }: { r: PieceReference; state?:
   );
 }
 
-/** "Subir material" + "Ya lo grabé". */
+/** "Subir a Drive" (the agency's folder) + "Ya lo grabé". */
 export function ActionButtons({ p, variant, onRecorded }: { p: PieceFull; variant: Variant; onRecorded?: () => void }) {
-  const { markRecorded, uploadMaterial, uploads, readOnly, blocked } = useApp();
-  const input = useRef<HTMLInputElement>(null);
-  const pick = () => (readOnly ? blocked() : input.current?.click());
-  const busy = uploads[p.id]?.state === "uploading";
-  const picker = (
-    <input
-      ref={input}
-      type="file"
-      accept="video/*,image/*"
-      multiple
-      hidden
-      onChange={(e) => { const files = Array.from(e.target.files ?? []); e.target.value = ""; void uploadMaterial(p.id, files); }}
-    />
-  );
+  const { markRecorded, client } = useApp();
+  const drive = client.drive_url;
+  const recorded = () => { markRecorded(p.id); onRecorded?.(); };
   if (variant === "mobile") {
     return (
       <div className="flex flex-none gap-2.5 border-t bg-sheet-mobile px-[18px] pt-3 pb-[max(30px,env(safe-area-inset-bottom))]" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
-        {picker}
-        <button onClick={() => { markRecorded(p.id); onRecorded?.(); }} className="h-[52px] flex-1 cursor-pointer rounded-[14px] border bg-transparent text-[15px] font-medium text-text transition-transform active:scale-[0.97]" style={{ borderColor: "rgba(255,255,255,0.14)" }}>
-          Ya lo grabé
-        </button>
-        <button disabled={busy} onClick={pick} className="h-[52px] flex-[1.3] cursor-pointer rounded-[14px] border-none bg-amber text-[15px] font-semibold text-amber-ink transition-transform active:scale-[0.97] disabled:opacity-70">
-          {busy ? "Subiendo…" : "Subir material"}
-        </button>
+        {drive ? (
+          <>
+            <button onClick={recorded} className="h-[52px] flex-1 cursor-pointer rounded-[14px] border bg-transparent text-[15px] font-medium text-text transition-transform active:scale-[0.97]" style={{ borderColor: "rgba(255,255,255,0.14)" }}>
+              Ya lo grabé
+            </button>
+            <a href={drive} target="_blank" rel="noopener noreferrer" className="flex h-[52px] flex-[1.3] items-center justify-center rounded-[14px] bg-amber text-[15px] font-semibold text-amber-ink no-underline transition-transform active:scale-[0.97] hover:text-amber-ink">
+              Subir a Drive ↗
+            </a>
+          </>
+        ) : (
+          <button onClick={recorded} className="h-[52px] flex-1 cursor-pointer rounded-[14px] border-none bg-amber text-[15px] font-semibold text-amber-ink transition-transform active:scale-[0.97]">
+            Ya lo grabé
+          </button>
+        )}
       </div>
     );
   }
   return (
     <div className="flex flex-wrap gap-2">
-      {picker}
-      <button disabled={busy} onClick={pick} className="h-11 flex-[1_1_160px] cursor-pointer rounded-[9px] border-none bg-amber text-sm font-semibold text-amber-ink hover:bg-amber-hover disabled:opacity-70">
-        {busy ? "Subiendo…" : "Subir material"}
-      </button>
-      <button onClick={() => markRecorded(p.id)} className="h-11 flex-[1_1_140px] cursor-pointer rounded-[9px] border bg-transparent text-sm font-medium text-text hover:bg-surface-3" style={{ borderColor: "rgba(255,255,255,0.14)" }}>
+      {drive && (
+        <a href={drive} target="_blank" rel="noopener noreferrer" className="flex h-11 flex-[1_1_160px] items-center justify-center rounded-[9px] bg-amber text-sm font-semibold text-amber-ink no-underline hover:bg-amber-hover hover:text-amber-ink">
+          Subir a Drive ↗
+        </a>
+      )}
+      <button
+        onClick={recorded}
+        className={`h-11 flex-[1_1_140px] cursor-pointer rounded-[9px] text-sm ${drive ? "border bg-transparent font-medium text-text hover:bg-surface-3" : "border-none bg-amber font-semibold text-amber-ink hover:bg-amber-hover"}`}
+        style={drive ? { borderColor: "rgba(255,255,255,0.14)" } : undefined}
+      >
         Ya lo grabé
       </button>
     </div>

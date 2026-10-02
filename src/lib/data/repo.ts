@@ -68,6 +68,7 @@ export interface Repo {
   sendBriefs(ids: string[]): Promise<void>;
   setStatus(id: string, status: Status, redoReason?: string | null): Promise<void>;
   reschedule(id: string, publishAt: string, recordDueAt: string): Promise<void>;
+  setClientDrive(clientId: string, url: string | null): Promise<void>;
   markReceived(id: string): Promise<void>;
   setBlocks(pieceId: string, blocks: ParsedBlock[]): Promise<void>;
   addReference(input: ReferenceInput): Promise<void>;

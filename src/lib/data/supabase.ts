@@ -143,6 +143,10 @@ export const supabaseRepo: Repo = {
     const sb = await supabaseServer();
     check(await sb.from("pieces").update({ publish_at: publishAt, record_due_at: recordDueAt }).eq("id", id));
   },
+  async setClientDrive(clientId, url) {
+    const sb = await supabaseServer();
+    check(await sb.from("clients").update({ drive_url: url }).eq("id", clientId));
+  },
   async markReceived(id) {
     const sb = await supabaseServer();
     check(await sb.from("pieces").update({ received_at: new Date().toISOString() }).eq("id", id));

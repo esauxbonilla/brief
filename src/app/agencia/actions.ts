@@ -116,6 +116,15 @@ export async function movePiece(id: string, recordDay: string) {
   refresh(p.client_id);
 }
 
+/** The client's Drive folder; their "Subir a Drive" button opens it. */
+export async function setClientDrive(clientId: string, url: string) {
+  await clientTz(clientId);
+  const u = url.trim();
+  if (u && !/^https?:\/\/\S+$/.test(u)) throw new Error("Pega un link que empiece con https://");
+  await repo.setClientDrive(clientId, u || null);
+  refresh(clientId);
+}
+
 export async function deletePiece(id: string) {
   const p = await ownPiece(id);
   await repo.deletePiece(id);
