@@ -117,7 +117,7 @@ export function OverdueActions({ id, publishDay }: { id: string; publishDay: str
   );
 }
 
-function Row({ p, tz, now, lead, actions }: { p: PieceFull; tz: string; now: Date; lead?: ReactNode; actions?: ReactNode }) {
+function Row({ p, tz, now, lead, actions, onOpen }: { p: PieceFull; tz: string; now: Date; lead?: ReactNode; actions?: ReactNode; onOpen?: (id: string) => void }) {
   const ds = displayStatus(p, now);
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border bg-card px-3.5 py-2.5" style={{ borderColor: isOverdue(p, now) ? "rgba(255,92,92,0.5)" : "rgba(255,255,255,0.06)" }}>
@@ -128,7 +128,11 @@ function Row({ p, tz, now, lead, actions }: { p: PieceFull; tz: string; now: Dat
           <StatusPill s={ds} />
           {p.status === "grabado" && p.uploads.length > 0 && <span className="text-[11px] text-green">{p.uploads.length} archivo{p.uploads.length > 1 ? "s" : ""}</span>}
         </div>
-        <Link href={`/agencia/pieza/${p.id}`} className="text-[15px] font-semibold text-text no-underline hover:text-white">{p.title}</Link>
+        {onOpen ? (
+          <button onClick={() => onOpen(p.id)} className="cursor-pointer border-none bg-transparent p-0 text-left text-[15px] font-semibold text-text hover:text-white">{p.title}</button>
+        ) : (
+          <Link href={`/agencia/pieza/${p.id}`} className="text-[15px] font-semibold text-text no-underline hover:text-white">{p.title}</Link>
+        )}
         <span className="text-xs text-text-3">
           Grabar: {shortLabel(dayKey(p.record_due_at, tz))}
           {isPending(p) && <> · {urgency(p.record_due_at, now, tz).text}</>} · Publica: {shortLabel(dayKey(p.publish_at, tz))}
@@ -154,7 +158,7 @@ function Section({ title, hint, children, empty }: { title: string; hint?: strin
 }
 
 /** One client's pieces grouped by what the agency has to do with them. */
-export function ClientBoard({ pieces, tz, serverNow }: { pieces: PieceFull[]; tz: string; serverNow: string }) {
+export function ClientBoard({ pieces, tz, serverNow, onOpen }: { pieces: PieceFull[]; tz: string; serverNow: string; onOpen?: (id: string) => void }) {
   const now = new Date(serverNow);
   const [sel, setSel] = useState<string[]>([]);
   const { pending, run } = useAct();
@@ -183,11 +187,11 @@ export function ClientBoard({ pieces, tz, serverNow }: { pieces: PieceFull[]; tz
   return (
     <div className="flex flex-col gap-8">
       <Section title={`Atrasadas (${overdue.length})`} hint="Reprograma o cancela: que no se acumulen en rojo." empty={!overdue.length}>
-        {overdue.map((p) => <Row key={p.id} p={p} tz={tz} now={now} actions={<OverdueActions id={p.id} publishDay={dayKey(p.publish_at, tz)} />} />)}
+        {overdue.map((p) => <Row key={p.id} p={p} tz={tz} now={now} onOpen={onOpen} actions={<OverdueActions id={p.id} publishDay={dayKey(p.publish_at, tz)} />} />)}
       </Section>
 
       <Section title={`Material recibido (${received.length})`} hint="Aprobar pasa a edición. Pedir que lo repita lo devuelve al cliente." empty={!received.length}>
-        {received.map((p) => <Row key={p.id} p={p} tz={tz} now={now} actions={<ReceivedActions id={p.id} received={!!p.received_at} />} />)}
+        {received.map((p) => <Row key={p.id} p={p} tz={tz} now={now} onOpen={onOpen} actions={<ReceivedActions id={p.id} received={!!p.received_at} />} />)}
       </Section>
 
       <Section title={`Borradores (${drafts.length})`} hint="El cliente no los ve hasta que envías el brief.">
@@ -198,6 +202,7 @@ export function ClientBoard({ pieces, tz, serverNow }: { pieces: PieceFull[]; tz
             p={p}
             tz={tz}
             now={now}
+            onOpen={onOpen}
             lead={
               <input
                 type="checkbox"
@@ -221,15 +226,15 @@ export function ClientBoard({ pieces, tz, serverNow }: { pieces: PieceFull[]; tz
       </Section>
 
       <Section title={`Esperando al cliente (${waiting.length})`} empty={!waiting.length}>
-        {waiting.map((p) => <Row key={p.id} p={p} tz={tz} now={now} />)}
+        {waiting.map((p) => <Row key={p.id} p={p} tz={tz} now={now} onOpen={onOpen} />)}
       </Section>
 
       <Section title={`En producción (${production.length})`} empty={!production.length}>
-        {production.map((p) => <Row key={p.id} p={p} tz={tz} now={now} />)}
+        {production.map((p) => <Row key={p.id} p={p} tz={tz} now={now} onOpen={onOpen} />)}
       </Section>
 
       <Section title={`Publicadas y canceladas (${done.length})`} empty={!done.length}>
-        {done.map((p) => <Row key={p.id} p={p} tz={tz} now={now} />)}
+        {done.map((p) => <Row key={p.id} p={p} tz={tz} now={now} onOpen={onOpen} />)}
       </Section>
     </div>
   );

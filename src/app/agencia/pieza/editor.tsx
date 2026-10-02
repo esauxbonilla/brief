@@ -2,11 +2,12 @@
 
 import { useActionState, useMemo, useState, type ReactNode } from "react";
 import { CHANNEL_KEYS, CHANNELS, EDIT_DAYS, GENERIC } from "@/lib/constants";
-import { addDays, DEFAULT_BUFFER_DAYS } from "@/lib/dates";
+import { addDays, DEFAULT_BUFFER_DAYS, dayKey } from "@/lib/dates";
+import { displayStatus } from "@/lib/pieces";
 import { parseScript } from "@/lib/script-parse";
 import type { Channel, PieceFull } from "@/lib/types";
 import * as A from "../actions";
-import { Btn, useAct } from "../ui";
+import { Btn, ChannelTag, ReceivedActions, StatusPill, useAct } from "../ui";
 
 const field = "w-full rounded-[10px] border bg-surface-2 px-3 text-sm text-text outline-none focus:border-amber placeholder:text-text-4";
 const fieldStyle = { borderColor: "rgba(255,255,255,0.12)" };
@@ -76,19 +77,19 @@ export function PieceForm({ init }: { init: PieceFormInit }) {
           </select>
         </F>
         <F label="Título" hint={<span style={{ color: words > 5 ? "#FF5C5C" : undefined }}>{words}/5 palabras</span>}>
-          <input name="title" required value={title} onChange={(e) => setTitle(e.target.value)} className={`${field} h-10`} style={fieldStyle} />
+          <input name="title" value={title} placeholder="Sin título" onChange={(e) => setTitle(e.target.value)} className={`${field} h-10`} style={fieldStyle} />
         </F>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
         <F label="Se publica el">
-          <input type="date" name="publish_date" required value={publish} onChange={(e) => { setPublish(e.target.value); recalc(e.target.value, editDays); }} className={`${field} h-10`} style={fieldStyle} />
+          <input type="date" name="publish_date" value={publish} onChange={(e) => { setPublish(e.target.value); recalc(e.target.value, editDays); }} className={`${field} h-10`} style={fieldStyle} />
         </F>
         <F label="Días de edición">
           <input type="number" min={0} max={60} name="edit_days" value={editDays} onChange={(e) => { const n = Number(e.target.value) || 0; setEditDays(n); recalc(publish, n); }} className={`${field} h-10`} style={fieldStyle} />
         </F>
         <F label="Grabar antes del (20:00)" hint={dueTouched ? <button type="button" className="cursor-pointer border-none bg-transparent p-0 text-xs text-amber" onClick={() => { setDueTouched(false); setDue(addDays(publish, -(editDays + DEFAULT_BUFFER_DAYS))); }}>recalcular</button> : "calculada"}>
-          <input type="date" name="record_due_date" required value={due} onChange={(e) => { setDue(e.target.value); setDueTouched(true); }} className={`${field} h-10`} style={fieldStyle} />
+          <input type="date" name="record_due_date" value={due} onChange={(e) => { setDue(e.target.value); setDueTouched(true); }} className={`${field} h-10`} style={fieldStyle} />
         </F>
       </div>
 
@@ -254,6 +255,61 @@ export function UploadsList({ piece }: { piece: PieceFull }) {
           <span className="text-xs text-text-3">{new Date(u.uploaded_at).toLocaleString("es-MX", { dateStyle: "short", timeStyle: "short" })}</span>
         </button>
       ))}
+    </div>
+  );
+}
+
+function Section({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="flex flex-col gap-3.5 rounded-[14px] border bg-sheet p-5" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
+      <h2 className="m-0 text-[11px] font-semibold tracking-[0.08em] text-text-3 uppercase">{title}</h2>
+      {children}
+    </section>
+  );
+}
+
+/** Everything about one piece, editable: used by the calendar side panel and /agencia/pieza/[id]. */
+export function PieceEditor({ piece: p, tz, now }: { piece: PieceFull; tz: string; now: string }) {
+  return (
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <ChannelTag ch={p.channel} />
+          <StatusPill s={displayStatus(p, new Date(now))} />
+          {p.brief_sent_at ? <span className="text-xs text-text-3">Brief enviado</span> : <span className="text-xs text-amber">El cliente aún no la ve</span>}
+        </div>
+        <h1 className="m-0 text-2xl font-semibold tracking-[-0.015em]">{p.title}</h1>
+        <PieceStatusActions piece={p} />
+      </div>
+
+      {p.status === "grabado" && (
+        <Section title="Material recibido">
+          <UploadsList piece={p} />
+          <ReceivedActions id={p.id} received={!!p.received_at} />
+        </Section>
+      )}
+
+      <Section title="Brief">
+        <PieceForm
+          key={p.id + p.publish_at + p.record_due_at + p.channel + p.title}
+          init={{
+            id: p.id, client_id: p.client_id, channel: p.channel, title: p.title === "Sin título" ? "" : p.title, format: p.format ?? "", objective: p.objective ?? "",
+            hook: p.hook ?? "", notes: p.notes.join("\n"), shots: p.shots.map((x) => x.text).join("\n"),
+            publish_date: dayKey(p.publish_at, tz), record_due_date: dayKey(p.record_due_at, tz), edit_days: p.edit_days,
+          }}
+        />
+      </Section>
+      <Section title="Guion">
+        <ScriptEditor piece={p} />
+      </Section>
+      <Section title="Referencias">
+        <References piece={p} />
+      </Section>
+      {p.status !== "grabado" && (
+        <Section title="Material del cliente">
+          <UploadsList piece={p} />
+        </Section>
+      )}
     </div>
   );
 }

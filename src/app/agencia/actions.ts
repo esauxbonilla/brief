@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { repo } from "@/lib/data";
-import { computeRecordDue, dayKey, shortLabel, zonedTime } from "@/lib/dates";
+import { EDIT_DAYS } from "@/lib/constants";
+import { addDays, computeRecordDue, DEADLINE_TIME, DEFAULT_BUFFER_DAYS, dayIndex, dayKey, hhmm, shortLabel, zonedTime } from "@/lib/dates";
 import { parseScript } from "@/lib/script-parse";
 import { isDemo } from "@/lib/supabase/config";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -43,25 +44,31 @@ const text = (v: FormDataEntryValue | null) => String(v ?? "").trim() || null;
 
 export type SaveState = { error?: string };
 
+const UNTITLED = "Sin título";
+const isDay = (v: string) => /^\d{4}-\d{2}-\d{2}$/.test(v);
+
+/** Every field is optional: missing ones get sensible defaults. */
 export async function savePiece(_: SaveState, form: FormData): Promise<SaveState> {
   const id = text(form.get("id")) ?? undefined;
   const client_id = String(form.get("client_id"));
   const tz = await clientTz(client_id);
   if (id) await ownPiece(id);
 
-  const title = String(form.get("title") ?? "").trim().replace(/\s+/g, " ");
-  if (!title) return { error: "Falta el título." };
+  const title = String(form.get("title") ?? "").trim().replace(/\s+/g, " ") || UNTITLED;
   if (title.split(" ").length > 5) return { error: "El título debe tener 5 palabras como máximo." };
-  const publishDay = String(form.get("publish_date") ?? "");
-  const dueDay = String(form.get("record_due_date") ?? "");
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(publishDay) || !/^\d{4}-\d{2}-\d{2}$/.test(dueDay)) return { error: "Revisa las fechas." };
-  if (dueDay > publishDay) return { error: "La fecha de grabación no puede ser después de la de publicación." };
-  const editDays = Math.max(0, Number(form.get("edit_days") ?? 0) | 0);
+  const channel = (String(form.get("channel") ?? "") || "reel") as Channel;
+  const editDays = Math.max(0, Number(form.get("edit_days") || EDIT_DAYS[channel]) | 0);
+  const gap = editDays + DEFAULT_BUFFER_DAYS;
+  let publishDay = String(form.get("publish_date") ?? "");
+  let dueDay = String(form.get("record_due_date") ?? "");
+  if (!isDay(publishDay) && !isDay(dueDay)) publishDay = addDays(dayKey(new Date(), tz), 10);
+  if (!isDay(publishDay)) publishDay = addDays(dueDay, gap);
+  if (!isDay(dueDay)) dueDay = addDays(publishDay, -gap);
 
   const pieceId = await repo.savePiece({
     id,
     client_id,
-    channel: String(form.get("channel")) as Channel,
+    channel,
     title,
     format: text(form.get("format")),
     objective: text(form.get("objective")),
@@ -75,6 +82,40 @@ export async function savePiece(_: SaveState, form: FormData): Promise<SaveState
   refresh(client_id);
   if (!id) redirect(`/agencia/pieza/${pieceId}`);
   return {};
+}
+
+/** One click on a calendar day: an empty draft to record that day. */
+export async function quickCreate(clientId: string, recordDay: string): Promise<string> {
+  const tz = await clientTz(clientId);
+  if (!isDay(recordDay)) throw new Error("Fecha inválida");
+  const editDays = EDIT_DAYS.reel;
+  const id = await repo.savePiece({
+    client_id: clientId,
+    channel: "reel",
+    title: UNTITLED,
+    format: null,
+    objective: null,
+    hook: null,
+    notes: [],
+    shots: [],
+    publish_at: zonedTime(addDays(recordDay, editDays + DEFAULT_BUFFER_DAYS), "12:00", tz).toISOString(),
+    record_due_at: zonedTime(recordDay, DEADLINE_TIME, tz).toISOString(),
+    edit_days: editDays,
+  });
+  refresh(clientId);
+  return id;
+}
+
+/** Drag and drop: the recording day moves and the publish day moves with it. */
+export async function movePiece(id: string, recordDay: string) {
+  const p = await ownPiece(id);
+  if (!isDay(recordDay)) throw new Error("Fecha inválida");
+  const tz = await clientTz(p.client_id);
+  const delta = dayIndex(recordDay) - dayIndex(dayKey(p.record_due_at, tz));
+  if (!delta) return;
+  const publishDay = addDays(dayKey(p.publish_at, tz), delta);
+  await repo.reschedule(id, zonedTime(publishDay, hhmm(p.publish_at, tz), tz).toISOString(), zonedTime(recordDay, DEADLINE_TIME, tz).toISOString());
+  refresh(p.client_id);
 }
 
 export async function deletePiece(id: string) {

@@ -32,7 +32,7 @@ export default async function AgencyLayout({ children }: LayoutProps<"/agencia">
           <SignOutButton />
         </div>
       </header>
-      <main className="mx-auto max-w-[1100px] px-6 py-6">{children}</main>
+      <main className="mx-auto max-w-[1440px] px-6 py-6">{children}</main>
     </div>
   );
 }
