@@ -75,7 +75,7 @@ export async function savePiece(_: SaveState, form: FormData): Promise<SaveState
     notes: lines(form.get("notes")),
     shots: lines(form.get("shots")),
     publish_at: zonedTime(publishDay, "12:00", tz).toISOString(),
-    record_due_at: zonedTime(dueDay, "20:00", tz).toISOString(),
+    record_due_at: zonedTime(dueDay, DEADLINE_TIME, tz).toISOString(),
     edit_days: editDays,
   });
   refresh(client_id);

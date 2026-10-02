@@ -3,7 +3,15 @@
 // deadline match what the coach sees on their phone.
 
 export const DEFAULT_TZ = "America/Mexico_City";
-export const DEADLINE_TIME = "20:00";
+/**
+ * Deadlines are day-only for now: the hour is hidden everywhere and a piece is
+ * due until the end of its day. Set to true to show and use "antes de las 20:00" again.
+ */
+export const SHOW_DEADLINE_TIME = false;
+export const DEADLINE_TIME = SHOW_DEADLINE_TIME ? "20:00" : "23:59";
+
+/** ", 20:00" after a date when deadline times are shown; nothing otherwise. */
+export const deadlineSuffix = (time: string = DEADLINE_TIME) => (SHOW_DEADLINE_TIME ? `, ${time}` : "");
 export const DEFAULT_BUFFER_DAYS = 1;
 
 export const MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
@@ -91,7 +99,7 @@ export function zonedTime(key: DayKey, time: string, tz: string): Date {
   return new Date(guess);
 }
 
-/** record_due_at = publish_at − edit_days − buffer, at 20:00 local. */
+/** record_due_at = publish_at − edit_days − buffer, at DEADLINE_TIME local. */
 export function computeRecordDue(
   publishAt: Date | string,
   editDays: number,
@@ -157,8 +165,8 @@ export function urgency(due: Date | string, now: Date, tz: string): Urgency {
     const n = -days;
     return { tone: "overdue", text: n === 1 ? "Venció ayer" : `Venció hace ${n} días`, days };
   }
-  if (days === 0) return { tone: "urgent", text: `Hoy antes de las ${time}`, days };
-  if (days === 1) return { tone: "urgent", text: `Mañana antes de las ${time}`, days };
+  if (days === 0) return { tone: "urgent", text: SHOW_DEADLINE_TIME ? `Hoy antes de las ${time}` : "Para hoy", days };
+  if (days === 1) return { tone: "urgent", text: SHOW_DEADLINE_TIME ? `Mañana antes de las ${time}` : "Para mañana", days };
   if (days <= 3) return { tone: "soon", text: `En ${days} días`, days };
   const { d, dow } = keyParts(dueKey);
   return { tone: "calm", text: `Para el ${DIAS[dow]} ${d}`, days };

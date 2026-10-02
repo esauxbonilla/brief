@@ -1,7 +1,7 @@
 // In-memory store used when Supabase isn't configured. Seeded from the
 // prototype data with dates relative to today. Lives for the server process.
 
-import { addDays, dayKey, zonedTime } from "../dates";
+import { addDays, DEADLINE_TIME, dayKey, zonedTime } from "../dates";
 import { isPending, isVisibleToClient } from "../pieces";
 import { SEED_AGENCY, SEED_CLIENT, SEED_PIECES, seedDefaults } from "../seed-data";
 import type { Agency, Client, Piece, PieceFull, PieceReference, ScriptBlock, Shot, Status, Upload } from "../types";
@@ -25,7 +25,7 @@ function seed(): Db {
   const agency: Agency = { id: "agency-en", name: SEED_AGENCY.name, initials: SEED_AGENCY.initials, logo_url: null };
   const client: Client = { id: "client-mr", agency_id: agency.id, name: SEED_CLIENT.name, initials: SEED_CLIENT.initials, avatar_url: null, phone: SEED_CLIENT.phone, tz: SEED_CLIENT.tz };
   const today = dayKey(new Date(), client.tz);
-  const at = (offset: number) => zonedTime(addDays(today, offset), "20:00", client.tz).toISOString();
+  const at = (offset: number) => zonedTime(addDays(today, offset), DEADLINE_TIME, client.tz).toISOString();
   const db: Db = { agency, client, pieces: [], shots: [], blocks: [], refs: [], uploads: [], notifications: [] };
 
   for (const s of SEED_PIECES) {

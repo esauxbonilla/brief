@@ -2,7 +2,7 @@
 
 import { useActionState, useMemo, useRef, useState, type ReactNode } from "react";
 import { CHANNEL_KEYS, CHANNELS, EDIT_DAYS, GENERIC } from "@/lib/constants";
-import { addDays, DEFAULT_BUFFER_DAYS, dayKey } from "@/lib/dates";
+import { addDays, DEFAULT_BUFFER_DAYS, dayKey, SHOW_DEADLINE_TIME } from "@/lib/dates";
 import { displayStatus } from "@/lib/pieces";
 import { firstUrl, siteName, withoutUrls } from "@/lib/links";
 import { parseScript } from "@/lib/script-parse";
@@ -98,7 +98,7 @@ export function PieceForm({ init }: { init: PieceFormInit }) {
           <F label="Días de edición">
             <input type="number" min={0} max={60} name="edit_days" value={editDays} onChange={(e) => { const n = Number(e.target.value) || 0; setEditDays(n); recalc(publish, n); }} className={`${field} h-10`} style={fieldStyle} />
           </F>
-          <F label="Grabar antes del (20:00)" hint={dueTouched ? <button type="button" className="cursor-pointer border-none bg-transparent p-0 text-xs text-amber" onClick={() => { setDueTouched(false); setDue(addDays(publish, -(editDays + DEFAULT_BUFFER_DAYS))); }}>recalcular</button> : "calculada"}>
+          <F label={SHOW_DEADLINE_TIME ? "Grabar antes del (20:00)" : "Grabar el"} hint={dueTouched ? <button type="button" className="cursor-pointer border-none bg-transparent p-0 text-xs text-amber" onClick={() => { setDueTouched(false); setDue(addDays(publish, -(editDays + DEFAULT_BUFFER_DAYS))); }}>recalcular</button> : "calculada"}>
             <input type="date" name="record_due_date" value={due} onChange={(e) => { setDue(e.target.value); setDueTouched(true); }} className={`${field} h-10`} style={fieldStyle} />
           </F>
         </div>

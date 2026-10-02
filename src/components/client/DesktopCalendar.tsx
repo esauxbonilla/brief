@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { CHANNELS } from "@/lib/constants";
-import { addDays, dayKey, keyParts, MESES, shortLabel, urgency, weekStart, type DayKey } from "@/lib/dates";
+import { addDays, dayKey, deadlineSuffix, keyParts, MESES, SHOW_DEADLINE_TIME, shortLabel, urgency, weekStart, type DayKey } from "@/lib/dates";
 import { cardStyle, currentWeek, isClientsTurn, isPending, plural, thisWeekPending } from "@/lib/pieces";
 import type { PieceFull } from "@/lib/types";
 import { ActionButtons, BriefTab, DetailHeader, DetailTabs, GuionTab, RefsTab, useDetailOverlays, type Tab } from "./PieceDetail";
@@ -78,7 +78,7 @@ export function DesktopCalendar() {
                   <span className="text-lg font-semibold" style={{ color: "#FFF4DE" }}>{plural(wk.length, "pieza", "piezas")}</span>
                 </div>
                 <div className="text-[13px]" style={{ color: "#FFF4DE" }}>
-                  Entrega: <strong className="font-semibold">{lastDue ? `antes del ${shortLabel(dayKey(lastDue.record_due_at, tz))}, 20:00` : "nada pendiente"}</strong>
+                  Entrega: <strong className="font-semibold">{lastDue ? `${SHOW_DEADLINE_TIME ? "antes del" : "el"} ${shortLabel(dayKey(lastDue.record_due_at, tz))}${deadlineSuffix()}` : "nada pendiente"}</strong>
                 </div>
                 {nextDue && (
                   <div className="mt-0.5 flex items-center gap-1.5 text-xs" style={{ color: "#F2DDB0" }}>

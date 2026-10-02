@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState, type PointerEvent, type TouchEvent } from "react";
 import { CHANNELS } from "@/lib/constants";
-import { addDays, dayIndex, dayKey, DIAS_LETRA, keyParts, longDayLabel, MESES, shortLabel, urgency, weekRangeLabel, weekStart, type DayKey } from "@/lib/dates";
+import { addDays, dayIndex, dayKey, deadlineSuffix, DIAS_LETRA, keyParts, longDayLabel, MESES, shortLabel, urgency, weekRangeLabel, weekStart, type DayKey } from "@/lib/dates";
 import { cardStyle, currentWeek, inWeek, isClientsTurn, isPending, plural, thisWeekPending } from "@/lib/pieces";
 import type { PieceFull } from "@/lib/types";
 import { ActionButtons, BriefTab, DetailHeader, DetailTabs, GuionTab, RefsTab, useDetailOverlays, type Tab } from "./PieceDetail";
@@ -177,7 +177,7 @@ export function MobileCalendar() {
               </span>
               <span className="text-xs" style={{ color: "#C9B38A" }}>
                 {recorded.length ? `${recorded.length} de ${total} grabadas` : "Aún no has grabado ninguna"}
-                {lastDue && ` · última entrega ${shortLabel(dayKey(lastDue.record_due_at, tz))}, 20:00`}
+                {lastDue && ` · última entrega ${shortLabel(dayKey(lastDue.record_due_at, tz))}${deadlineSuffix()}`}
               </span>
             </span>
           )}

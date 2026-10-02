@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addDays, computeRecordDue, dayKey, hhmm, urgency, weekStart, zonedTime } from "./dates";
+import { addDays, computeRecordDue, DEADLINE_TIME, dayKey, hhmm, SHOW_DEADLINE_TIME, urgency, weekStart, zonedTime } from "./dates";
 import { cardStyle, displayStatus, isOverdue, isVisibleToClient, sessionQueue, thisWeekPending, tier } from "./pieces";
 import type { Piece } from "./types";
 
@@ -30,10 +30,10 @@ describe("calendar helpers", () => {
     expect(hhmm(w, "Europe/Madrid")).toBe("20:00");
   });
 
-  it("record_due_at = publish − edit_days − buffer at 20:00", () => {
+  it("record_due_at = publish − edit_days − buffer at the deadline time", () => {
     const d = computeRecordDue(zonedTime("2026-10-15", "12:00", TZ), 5, TZ);
     expect(dayKey(d, TZ)).toBe("2026-10-09");
-    expect(hhmm(d, TZ)).toBe("20:00");
+    expect(hhmm(d, TZ)).toBe(DEADLINE_TIME);
     expect(dayKey(computeRecordDue(zonedTime("2026-10-15", "12:00", TZ), 5, TZ, 0), TZ)).toBe("2026-10-10");
   });
 
@@ -45,8 +45,8 @@ describe("calendar helpers", () => {
 
 describe("urgency text", () => {
   it("today and tomorrow are urgent", () => {
-    expect(urgency(due("2026-10-01"), NOW, TZ)).toMatchObject({ tone: "urgent", text: "Hoy antes de las 20:00" });
-    expect(urgency(due("2026-10-02"), NOW, TZ)).toMatchObject({ tone: "urgent", text: "Mañana antes de las 20:00" });
+    expect(urgency(due("2026-10-01"), NOW, TZ)).toMatchObject({ tone: "urgent", text: SHOW_DEADLINE_TIME ? "Hoy antes de las 20:00" : "Para hoy" });
+    expect(urgency(due("2026-10-02"), NOW, TZ)).toMatchObject({ tone: "urgent", text: SHOW_DEADLINE_TIME ? "Mañana antes de las 20:00" : "Para mañana" });
   });
   it("2–3 days is soon", () => {
     expect(urgency(due("2026-10-03"), NOW, TZ)).toMatchObject({ tone: "soon", text: "En 2 días" });
