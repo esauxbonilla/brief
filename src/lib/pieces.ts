@@ -1,4 +1,4 @@
-import { STATUS, type DisplayStatus } from "./constants";
+import { isTask, STATUS, type DisplayStatus } from "./constants";
 import { addDays, dayKey, weekStart, type DayKey } from "./dates";
 import type { Piece, Status } from "./types";
 
@@ -74,11 +74,16 @@ export interface CardStyle {
   pill: string;
 }
 
+/** An "Extra" is pending or done; the content pipeline names don't apply. */
+export function taskStatusName(s: Status): string {
+  return s === "grabar" || s === "rehacer" ? "Pendiente" : s === "borrador" || s === "cancelado" ? STATUS[s].name : "Hecho";
+}
+
 export function cardStyle(p: Piece, now: Date, tz: string, mobile = false): CardStyle {
   const t = tier(p, now, tz);
   const ds = displayStatus(p, now);
   const S = STATUS[ds];
-  const pill = p.status === "rehacer" && t !== "overdue" ? STATUS.rehacer.name : S.name;
+  const pill = isTask(p) && t !== "overdue" ? taskStatusName(p.status) : p.status === "rehacer" && t !== "overdue" ? STATUS.rehacer.name : S.name;
   switch (t) {
     case "overdue":
       return { bg: "#2A1214", border: "#FF5C5C", shadow: "0 0 0 3px rgba(255,92,92,0.12)", titleColor: "#FFE3E3", titleWeight: 600, pillBg: "#FF5C5C", pillFg: "#1A0506", pill };

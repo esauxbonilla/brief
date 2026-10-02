@@ -55,7 +55,8 @@ export async function savePiece(_: SaveState, form: FormData): Promise<SaveState
   const title = String(form.get("title") ?? "").trim().replace(/\s+/g, " ") || UNTITLED;
   if (title.split(" ").length > 5) return { error: "El título debe tener 5 palabras como máximo." };
   const channel = (String(form.get("channel") ?? "") || "reel") as Channel;
-  const editDays = Math.max(0, Number(form.get("edit_days") || EDIT_DAYS[channel]) | 0);
+  const rawEdit = String(form.get("edit_days") ?? "");
+  const editDays = rawEdit === "" ? EDIT_DAYS[channel] : Math.max(0, Number(rawEdit) | 0);
   const gap = editDays + DEFAULT_BUFFER_DAYS;
   let publishDay = String(form.get("publish_date") ?? "");
   let dueDay = String(form.get("record_due_date") ?? "");
@@ -82,14 +83,15 @@ export async function savePiece(_: SaveState, form: FormData): Promise<SaveState
   return {};
 }
 
-/** One click on a calendar day: an empty draft to record that day. */
-export async function quickCreate(clientId: string, recordDay: string): Promise<string> {
+/** One click on a calendar day: an empty draft of that type, to record that day. */
+export async function quickCreate(clientId: string, recordDay: string, channel: Channel = "reel"): Promise<string> {
   const tz = await clientTz(clientId);
   if (!isDay(recordDay)) throw new Error("Fecha inválida");
-  const editDays = EDIT_DAYS.reel;
+  if (!(channel in EDIT_DAYS)) throw new Error("Tipo inválido");
+  const editDays = EDIT_DAYS[channel];
   const id = await repo.savePiece({
     client_id: clientId,
-    channel: "reel",
+    channel,
     title: UNTITLED,
     format: null,
     objective: null,

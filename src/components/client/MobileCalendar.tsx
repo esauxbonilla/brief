@@ -9,7 +9,7 @@ import type { PieceFull } from "@/lib/types";
 import { ActionButtons, BriefTab, DetailHeader, DetailTabs, GuionTab, RefsTab, useDetailOverlays, type Tab } from "./PieceDetail";
 import { AccountMenu, OverdueStrip } from "./shared";
 import { useApp } from "./state";
-import { AgencyAvatar, ChannelChips, ClientAvatar, UrgencyText } from "./ui";
+import { AgencyAvatar, ChannelChips, ClientAvatar, NewPieceButton, UrgencyText } from "./ui";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
@@ -249,7 +249,7 @@ export function MobileCalendar() {
                 {isToday && <span className="rounded-full bg-text px-[7px] py-px text-[11px] font-semibold text-surface">Hoy</span>}
                 {!items.length && <span className="text-xs text-text-5">· Nada programado</span>}
                 {edit && (
-                  <button onClick={() => edit.create(k)} disabled={edit.busy} aria-label={`Nueva pieza el ${longDayLabel(k)}`} className="ml-auto h-7 cursor-pointer rounded-lg border-none bg-white/5 px-2.5 text-[13px] text-text-2c">+ Pieza</button>
+                  <NewPieceButton onPick={(c) => edit.create(k, c)} disabled={edit.busy} label={`Nueva pieza el ${longDayLabel(k)}`} className="ml-auto h-7 cursor-pointer rounded-lg border-none bg-white/5 px-2.5 text-[13px] text-text-2c">+ Pieza</NewPieceButton>
                 )}
               </div>
               {items.map((p) => <WeekCard key={p.id} p={p} onOpen={() => open(p.id)} />)}

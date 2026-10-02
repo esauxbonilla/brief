@@ -1,4 +1,4 @@
-export type Channel = "reel" | "story" | "lead" | "carrusel";
+export type Channel = "reel" | "story" | "lead" | "carrusel" | "extra";
 
 export type Status =
   | "borrador"

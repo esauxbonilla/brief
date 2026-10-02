@@ -84,31 +84,45 @@ export function PieceForm({ init }: { init: PieceFormInit }) {
         </F>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <F label="Se publica el">
-          <input type="date" name="publish_date" value={publish} onChange={(e) => { setPublish(e.target.value); recalc(e.target.value, editDays); }} className={`${field} h-10`} style={fieldStyle} />
+      {channel === "extra" ? (
+        <F label="Para cuándo">
+          <input type="hidden" name="publish_date" value={due} />
+          <input type="hidden" name="edit_days" value={0} />
+          <input type="date" name="record_due_date" value={due} onChange={(e) => { setDue(e.target.value); setDueTouched(true); }} className={`${field} h-10 max-w-[220px]`} style={fieldStyle} />
         </F>
-        <F label="Días de edición">
-          <input type="number" min={0} max={60} name="edit_days" value={editDays} onChange={(e) => { const n = Number(e.target.value) || 0; setEditDays(n); recalc(publish, n); }} className={`${field} h-10`} style={fieldStyle} />
-        </F>
-        <F label="Grabar antes del (20:00)" hint={dueTouched ? <button type="button" className="cursor-pointer border-none bg-transparent p-0 text-xs text-amber" onClick={() => { setDueTouched(false); setDue(addDays(publish, -(editDays + DEFAULT_BUFFER_DAYS))); }}>recalcular</button> : "calculada"}>
-          <input type="date" name="record_due_date" value={due} onChange={(e) => { setDue(e.target.value); setDueTouched(true); }} className={`${field} h-10`} style={fieldStyle} />
-        </F>
-      </div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-3">
+          <F label="Se publica el">
+            <input type="date" name="publish_date" value={publish} onChange={(e) => { setPublish(e.target.value); recalc(e.target.value, editDays); }} className={`${field} h-10`} style={fieldStyle} />
+          </F>
+          <F label="Días de edición">
+            <input type="number" min={0} max={60} name="edit_days" value={editDays} onChange={(e) => { const n = Number(e.target.value) || 0; setEditDays(n); recalc(publish, n); }} className={`${field} h-10`} style={fieldStyle} />
+          </F>
+          <F label="Grabar antes del (20:00)" hint={dueTouched ? <button type="button" className="cursor-pointer border-none bg-transparent p-0 text-xs text-amber" onClick={() => { setDueTouched(false); setDue(addDays(publish, -(editDays + DEFAULT_BUFFER_DAYS))); }}>recalcular</button> : "calculada"}>
+            <input type="date" name="record_due_date" value={due} onChange={(e) => { setDue(e.target.value); setDueTouched(true); }} className={`${field} h-10`} style={fieldStyle} />
+          </F>
+        </div>
+      )}
 
-      <F label="Formato">
-        <input name="format" defaultValue={init.format} placeholder={GENERIC[channel].format} className={`${field} h-10`} style={fieldStyle} />
-      </F>
-      <F label="Para qué sirve (objetivo)">
-        <textarea name="objective" defaultValue={init.objective} rows={2} className={`${field} py-2.5`} style={fieldStyle} />
-      </F>
-      <F label="Primera frase a cámara (gancho)">
-        <input name="hook" defaultValue={init.hook} className={`${field} h-10`} style={fieldStyle} />
-      </F>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <F label="Tomas que necesitamos" hint="una por línea">
-          <textarea name="shots" defaultValue={init.shots} rows={6} className={`${field} py-2.5`} style={fieldStyle} />
+      {channel !== "extra" && (
+        <F label="Formato">
+          <input name="format" defaultValue={init.format} placeholder={GENERIC[channel].format} className={`${field} h-10`} style={fieldStyle} />
         </F>
+      )}
+      <F label={channel === "extra" ? "Qué necesito que haga" : "Para qué sirve (objetivo)"}>
+        <textarea name="objective" defaultValue={init.objective} rows={channel === "extra" ? 4 : 2} className={`${field} py-2.5`} style={fieldStyle} placeholder={channel === "extra" ? "Ej. Mándame 5 fotos tuyas entrenando para la portada" : undefined} />
+      </F>
+      {channel !== "extra" && (
+        <F label="Primera frase a cámara (gancho)">
+          <input name="hook" defaultValue={init.hook} className={`${field} h-10`} style={fieldStyle} />
+        </F>
+      )}
+      <div className={channel === "extra" ? "grid gap-4" : "grid gap-4 sm:grid-cols-2"}>
+        {channel !== "extra" && (
+          <F label="Tomas que necesitamos" hint="una por línea">
+            <textarea name="shots" defaultValue={init.shots} rows={6} className={`${field} py-2.5`} style={fieldStyle} />
+          </F>
+        )}
         <F label="Ten en cuenta" hint="una por línea">
           <textarea name="notes" defaultValue={init.notes} rows={6} className={`${field} py-2.5`} style={fieldStyle} />
         </F>
@@ -392,13 +406,15 @@ export function PieceEditor({ piece: p, tz, now }: { piece: PieceFull; tz: strin
           }}
         />
       </Section>
-      <Section title="Guion">
-        <ScriptEditor piece={p} />
-      </Section>
+      {p.channel !== "extra" && (
+        <Section title="Guion">
+          <ScriptEditor piece={p} />
+        </Section>
+      )}
       <Section title="Referencias">
         <References piece={p} />
       </Section>
-      {p.status !== "grabado" && (
+      {p.status !== "grabado" && p.channel !== "extra" && (
         <Section title="Material del cliente">
           <UploadsList piece={p} />
         </Section>

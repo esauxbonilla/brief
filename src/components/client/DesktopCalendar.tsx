@@ -9,7 +9,7 @@ import type { PieceFull } from "@/lib/types";
 import { ActionButtons, BriefTab, DetailHeader, DetailTabs, GuionTab, RefsTab, useDetailOverlays, type Tab } from "./PieceDetail";
 import { AccountMenu, OverdueStrip } from "./shared";
 import { useApp } from "./state";
-import { AgencyAvatar, ChannelChips, ClientAvatar, Pill, StatusLegend, UrgencyText } from "./ui";
+import { AgencyAvatar, ChannelChips, ClientAvatar, NewPieceButton, Pill, StatusLegend, UrgencyText } from "./ui";
 
 const WEEKDAYS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 
@@ -159,14 +159,14 @@ function DayCell({ k, inMonth, isToday, thisWeek, items }: { k: DayKey; inMonth:
         </span>
         {isToday && <span className="text-[11px] text-text-2c">Hoy</span>}
         {edit && (
-          <button
-            onClick={() => edit.create(k)}
+          <NewPieceButton
+            onPick={(c) => edit.create(k, c)}
             disabled={edit.busy}
-            aria-label={`Nueva pieza el ${shortLabel(k)}`}
-            className="ml-auto flex size-6 cursor-pointer items-center justify-center rounded-md border-none bg-transparent text-base text-text-3 opacity-0 group-hover:opacity-100 hover:bg-white/10 hover:text-white focus:opacity-100"
+            label={`Nueva pieza el ${shortLabel(k)}`}
+            className="ml-auto flex size-6 cursor-pointer items-center justify-center rounded-md border-none bg-transparent text-base text-text-3 opacity-0 group-hover:opacity-100 hover:bg-white/10 hover:text-white focus:opacity-100 aria-expanded:opacity-100"
           >
             +
-          </button>
+          </NewPieceButton>
         )}
       </div>
       {items.map((p) => <MonthCard key={p.id} p={p} inMonth={inMonth} />)}

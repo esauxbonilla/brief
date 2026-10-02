@@ -17,7 +17,7 @@ interface Toast {
 
 /** Agency panel: same calendar, but pieces can be created, dragged and edited. */
 export interface AgencyEdit {
-  create: (day: DayKey) => void;
+  create: (day: DayKey, channel: Channel) => void;
   move: (id: string, day: DayKey) => void;
   panel: (p: PieceFull) => ReactNode;
   busy: boolean;
@@ -139,7 +139,7 @@ export function ClientState({
       patch(id, (x) => ({ ...x, status: prev }));
       fail(e);
     });
-    showToast(`«${p.title}» marcado como grabado`, () => {
+    showToast(`«${p.title}» marcado como ${p.channel === "extra" ? "hecho" : "grabado"}`, () => {
       patch(id, (x) => ({ ...x, status: prev }));
       actions.setRecorded(id, false).catch(fail);
     });
@@ -184,9 +184,9 @@ export function ClientState({
     return {
       busy,
       panel: agencyPanel,
-      create: (day) => startEdit(async () => {
+      create: (day, channel) => startEdit(async () => {
         try {
-          select(await agencyActions.quickCreate(client.id, day));
+          select(await agencyActions.quickCreate(client.id, day, channel));
         } catch (e) {
           fail(e);
         }

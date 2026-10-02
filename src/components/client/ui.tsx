@@ -1,6 +1,6 @@
 "use client";
 
-import type { CSSProperties, ReactNode } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 import { CHANNEL_KEYS, CHANNELS, FLOW, STATUS } from "@/lib/constants";
 import { URGENCY_STYLE, type Urgency } from "@/lib/dates";
 import type { Channel, Status } from "@/lib/types";
@@ -108,5 +108,57 @@ export function Stepper({ status, small = false }: { status: Status; small?: boo
         </div>
       ))}
     </div>
+  );
+}
+
+const NEW_LABEL: Record<Channel, string> = { reel: "Reel", story: "Story", lead: "Lead magnet", carrusel: "Carrusel", extra: "Extra (tarea)" };
+
+/**
+ * "+" that asks which kind of piece to create. The menu is fixed-positioned so
+ * calendar cells (overflow hidden) don't clip it.
+ */
+export function NewPieceButton({ onPick, disabled, label, className, children }: {
+  onPick: (c: Channel) => void;
+  disabled?: boolean;
+  label: string;
+  className: string;
+  children: ReactNode;
+}) {
+  const [at, setAt] = useState<{ top: number; left: number } | null>(null);
+  return (
+    <>
+      <button
+        type="button"
+        disabled={disabled}
+        aria-label={label}
+        aria-expanded={!!at}
+        onClick={(e) => {
+          const r = e.currentTarget.getBoundingClientRect();
+          setAt(at ? null : { top: Math.min(r.bottom + 6, window.innerHeight - 236), left: Math.max(8, Math.min(r.right - 200, window.innerWidth - 208)) });
+        }}
+        className={className}
+      >
+        {children}
+      </button>
+      {at && (
+        <>
+          <div className="fixed inset-0 z-[80]" onClick={() => setAt(null)} />
+          <div className="fixed z-[81] flex w-[200px] flex-col rounded-xl border bg-surface-2 p-1.5 shadow-lg" style={{ top: at.top, left: at.left, borderColor: "rgba(255,255,255,0.1)" }}>
+            <span className="px-2.5 pt-1 pb-1.5 text-[11px] text-text-3">Crear</span>
+            {CHANNEL_KEYS.map((k) => (
+              <button
+                key={k}
+                type="button"
+                onClick={() => { setAt(null); onPick(k); }}
+                className="flex h-9 cursor-pointer items-center gap-2.5 rounded-lg border-none bg-transparent px-2.5 text-left text-sm text-text hover:bg-white/5"
+              >
+                <span className="size-2 rounded-full" style={{ background: CHANNELS[k].color }} />
+                {NEW_LABEL[k]}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </>
   );
 }

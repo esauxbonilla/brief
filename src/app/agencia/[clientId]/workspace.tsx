@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useCallback, useState } from "react";
 import { ClientApp } from "@/components/client/ClientApp";
-import type { Agency, Client, PieceFull } from "@/lib/types";
+import { NewPieceButton } from "@/components/client/ui";
+import { dayKey } from "@/lib/dates";
+import type { Agency, Channel, Client, PieceFull } from "@/lib/types";
 import { PieceEditor } from "../pieza/editor";
 import * as A from "../actions";
 import { Btn, ClientBoard, useAct } from "../ui";
@@ -22,6 +24,15 @@ export function ClientWorkspace({ client, agency, pieces, serverNow }: {
   serverNow: string;
 }) {
   const [view, setView] = useState<View>("calendario");
+  // A new piece opens in the calendar's side panel: remount it with that selection.
+  const [opened, setOpened] = useState<{ id: string | null; n: number }>({ id: null, n: 0 });
+  const { pending, run } = useAct();
+  const create = (channel: Channel) =>
+    run(async () => {
+      const id = await A.quickCreate(client.id, dayKey(new Date(), client.tz), channel);
+      setOpened((o) => ({ id, n: o.n + 1 }));
+      setView("calendario");
+    });
   const panel = useCallback((p: PieceFull) => <PieceEditor piece={p} tz={client.tz} now={serverNow} />, [client.tz, serverNow]);
 
   return (
@@ -40,6 +51,14 @@ export function ClientWorkspace({ client, agency, pieces, serverNow }: {
           ))}
         </div>
         <div className="flex flex-wrap items-center gap-4">
+          <NewPieceButton
+            onPick={create}
+            disabled={pending}
+            label="Nueva pieza"
+            className="flex h-9 cursor-pointer items-center rounded-[10px] border-none bg-amber px-4 text-sm font-semibold text-amber-ink hover:bg-amber-hover disabled:opacity-60"
+          >
+            {pending ? "Creando…" : "+ Nueva pieza"}
+          </NewPieceButton>
           <DriveField client={client} />
           <Link href={`/calendario/${client.id}`} className="text-[13px] no-underline">Ver como lo ve {client.name.split(" ")[0]} →</Link>
         </div>
@@ -51,6 +70,8 @@ export function ClientWorkspace({ client, agency, pieces, serverNow }: {
         </div>
       ) : (
         <ClientApp
+          key={opened.n}
+          initialSelected={opened.id}
           client={client}
           agency={agency}
           initialPieces={pieces.filter((p) => p.status !== "cancelado")}

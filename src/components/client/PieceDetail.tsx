@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { firstUrl, siteName, withoutUrls } from "@/lib/links";
-import { CHANNELS } from "@/lib/constants";
+import { CHANNELS, isTask } from "@/lib/constants";
 import { dayKey, dayMonth, hhmm, shortLabel, urgency } from "@/lib/dates";
 import { cardStyle, isClientsTurn, isPending } from "@/lib/pieces";
 import type { PieceFull, PieceReference } from "@/lib/types";
@@ -41,7 +41,7 @@ export function DetailHeader({ p, variant }: { p: PieceFull; variant: Variant })
         <h2 className="m-0 text-2xl leading-[1.15] font-semibold tracking-[-0.015em]" style={{ textWrap: "balance" }}>{p.title}</h2>
         <div className="flex items-center gap-2 text-[13px] text-text-2c">
           {mine ? <ClientAvatar initials={client.initials} size={20} /> : <AgencyAvatar initials={agency.initials} size={20} />}
-          <span>{mine ? "Te toca a ti grabarlo" : `Lo tiene ${agency.name}`}</span>
+          <span>{mine ? (isTask(p) ? "Te toca a ti" : "Te toca a ti grabarlo") : `Lo tiene ${agency.name}`}</span>
         </div>
       </div>
     );
@@ -138,7 +138,13 @@ export function BriefTab({ p, variant }: { p: PieceFull; variant: Variant }) {
     <div className="flex flex-col gap-5">
       {p.status === "rehacer" && p.redo_reason && <RedoBox reason={p.redo_reason} />}
 
-      {mobile ? (
+      {isTask(p) ? (
+        <div className="flex flex-col gap-[3px] rounded-lg bg-surface-2 px-3 py-2.5">
+          <span className="text-[11px] text-text-3">Para el</span>
+          <span className="text-sm font-semibold">{shortLabel(dayKey(p.record_due_at, tz))}</span>
+          {pending && <span className="mt-0.5"><UrgencyText u={u} size={12} /></span>}
+        </div>
+      ) : mobile ? (
         <div className="flex gap-2">
           {p.format && <span className="rounded-lg bg-surface-4 px-2.5 py-1.5 text-xs text-text-2">{p.format}</span>}
         </div>
@@ -158,7 +164,7 @@ export function BriefTab({ p, variant }: { p: PieceFull; variant: Variant }) {
 
       {p.objective && (
         <div className="flex flex-col gap-1.5">
-          <SectionLabel>Para qué sirve</SectionLabel>
+          <SectionLabel>{isTask(p) ? "Qué necesitamos que hagas" : "Para qué sirve"}</SectionLabel>
           <p className="m-0 leading-[1.5] text-text-2" style={{ fontSize: mobile ? 15 : 14, textWrap: "pretty" }}>{p.objective}</p>
         </div>
       )}
@@ -229,7 +235,7 @@ export function BriefTab({ p, variant }: { p: PieceFull; variant: Variant }) {
         </div>
       )}
 
-      <Stepper status={p.status} small={mobile} />
+      {!isTask(p) && <Stepper status={p.status} small={mobile} />}
 
       <UploadStatus p={p} />
 
@@ -239,7 +245,7 @@ export function BriefTab({ p, variant }: { p: PieceFull; variant: Variant }) {
         </div>
       )}
 
-      {pending && <div className="text-xs text-text-3">Se publica el {dayMonth(dayKey(p.publish_at, tz))}</div>}
+      {pending && !isTask(p) && <div className="text-xs text-text-3">Se publica el {dayMonth(dayKey(p.publish_at, tz))}</div>}
     </div>
   );
 }
@@ -416,7 +422,8 @@ function RequestedRef({ r, state, onFile, onOpen }: { r: PieceReference; state?:
 /** "Subir a Drive" (the agency's folder) + "Ya lo grabé". */
 export function ActionButtons({ p, variant, onRecorded }: { p: PieceFull; variant: Variant; onRecorded?: () => void }) {
   const { markRecorded, client } = useApp();
-  const drive = client.drive_url;
+  const drive = isTask(p) ? null : client.drive_url;
+  const doneLabel = isTask(p) ? "Hecho ✓" : "Ya lo grabé";
   const recorded = () => { markRecorded(p.id); onRecorded?.(); };
   if (variant === "mobile") {
     return (
@@ -424,7 +431,7 @@ export function ActionButtons({ p, variant, onRecorded }: { p: PieceFull; varian
         {drive ? (
           <>
             <button onClick={recorded} className="h-[52px] flex-1 cursor-pointer rounded-[14px] border bg-transparent text-[15px] font-medium text-text transition-transform active:scale-[0.97]" style={{ borderColor: "rgba(255,255,255,0.14)" }}>
-              Ya lo grabé
+              {doneLabel}
             </button>
             <a href={drive} target="_blank" rel="noopener noreferrer" className="flex h-[52px] flex-[1.3] items-center justify-center rounded-[14px] bg-amber text-[15px] font-semibold text-amber-ink no-underline transition-transform active:scale-[0.97] hover:text-amber-ink">
               Subir a Drive ↗
@@ -432,7 +439,7 @@ export function ActionButtons({ p, variant, onRecorded }: { p: PieceFull; varian
           </>
         ) : (
           <button onClick={recorded} className="h-[52px] flex-1 cursor-pointer rounded-[14px] border-none bg-amber text-[15px] font-semibold text-amber-ink transition-transform active:scale-[0.97]">
-            Ya lo grabé
+            {doneLabel}
           </button>
         )}
       </div>
@@ -450,7 +457,7 @@ export function ActionButtons({ p, variant, onRecorded }: { p: PieceFull; varian
         className={`h-11 flex-[1_1_140px] cursor-pointer rounded-[9px] text-sm ${drive ? "border bg-transparent font-medium text-text hover:bg-surface-3" : "border-none bg-amber font-semibold text-amber-ink hover:bg-amber-hover"}`}
         style={drive ? { borderColor: "rgba(255,255,255,0.14)" } : undefined}
       >
-        Ya lo grabé
+        {doneLabel}
       </button>
     </div>
   );
