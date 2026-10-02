@@ -85,17 +85,26 @@ Eso es otro proyecto de Supabase y otro de Vercel, con sus propias claves. No se
 
 ---
 
-## Problemas comunes
+## Recuperar una contraseña olvidada
 
-### Alguien olvidó su contraseña
-Corre esto y la próxima vez que entre, la contraseña que escriba se queda como nueva:
+Las contraseñas se guardan en Supabase **cifradas**: nadie puede verlas, ni tú desde el panel de Supabase. No se recuperan, **se cambian por una nueva**. Sirve igual para ti, alguien de tu equipo o un cliente.
+
+**Paso 1.** En el SQL Editor, con el email de la persona:
 
 ```sql
 update auth.users set raw_app_meta_data = raw_app_meta_data - 'password_set'
 where email = 'persona@email.com';
 ```
 
-Dile que entre luego luego.
+Debe decir **1 row affected**. Si dice 0, el email está mal escrito.
+
+**Paso 2.** La persona entra a **briefops.vercel.app** con su email y una contraseña nueva. Esa se queda como la suya.
+
+Que entre luego luego: mientras no entre, cualquiera que conozca su email puede poner la contraseña.
+
+---
+
+## Problemas comunes
 
 ### "Ese email no está dado de alta"
 El email no está en `clients` ni en la agencia. Revisa que esté bien escrito:
@@ -105,7 +114,7 @@ select name, email from clients;
 ```
 
 ### "Contraseña incorrecta"
-Ya tiene contraseña y la escribió mal. Si no la recuerda, ve a **Alguien olvidó su contraseña**.
+Ya tiene contraseña y la escribió mal. Si no la recuerda, ve a **Recuperar una contraseña olvidada**.
 
 ### "Falta SUPABASE_SERVICE_ROLE_KEY en Vercel"
 Vercel → tu proyecto → **Settings** → **Environment Variables**:
