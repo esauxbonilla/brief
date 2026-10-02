@@ -31,4 +31,18 @@ Comenta “Ramiro”.`;
     expect(blocks).toHaveLength(1);
     expect(blocks[0].lines).toEqual(["Problema de muchos: no tienen tiempo."]);
   });
+
+  it("keeps a script without headings as a single block", () => {
+    const blocks = parseScript("¿Sigues sin poder quitarte la playera?\n\nEn enero muchos se prometieron un físico fuerte.\nNota: Habla lento.");
+    expect(blocks).toEqual([{
+      label: "Guion",
+      duration: null,
+      lines: ["¿Sigues sin poder quitarte la playera?", "En enero muchos se prometieron un físico fuerte."],
+      note: "Habla lento.",
+    }]);
+  });
+
+  it("returns no blocks for blank text", () => {
+    expect(parseScript("  \n\n ")).toEqual([]);
+  });
 });

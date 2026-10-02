@@ -2,6 +2,7 @@
 // known heading (Gancho, Problema, Solución, Prueba social, CTA); every
 // non-empty paragraph after it is one line. "Nota: …" paragraphs become the
 // block note. An optional duration may follow the heading: "Gancho (5 s)".
+// Headings are optional: a script without any becomes a single "Guion" block.
 
 export const HEADINGS = ["Gancho", "Problema", "Solución", "Prueba social", "CTA"];
 
@@ -32,6 +33,10 @@ function matchHeading(raw: string): { label: string; duration: string | null } |
 export function parseScript(text: string): ParsedBlock[] {
   const blocks: ParsedBlock[] = [];
   const paragraphs = text.replace(/\r\n?/g, "\n").replace(/ /g, " ").split("\n");
+  const hasHeadings = paragraphs.some((raw) => matchHeading(raw.trim()));
+  if (!hasHeadings && paragraphs.some((raw) => raw.trim())) {
+    blocks.push({ label: "Guion", duration: null, lines: [], note: null });
+  }
   for (const raw of paragraphs) {
     const p = raw.trim();
     if (!p) continue;

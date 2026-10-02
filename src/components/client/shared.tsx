@@ -8,7 +8,7 @@ import { useApp } from "./state";
 
 /** Sticky red strip with overdue pieces. Sits above the "esta semana" block. */
 export function OverdueStrip({ variant, onOpen }: { variant: "desktop" | "mobile"; onOpen: (id: string) => void }) {
-  const { pieces, now, tz } = useApp();
+  const { pieces, now, tz, base } = useApp();
   const list = overduePieces(pieces, now);
   if (!list.length) return null;
   const mobile = variant === "mobile";
@@ -24,7 +24,7 @@ export function OverdueStrip({ variant, onOpen }: { variant: "desktop" | "mobile
           Atrasadas: {list.length} {plural(list.length, "pieza", "piezas")}
         </span>
         <Link
-          href="/grabar"
+          href={`${base}/grabar`}
           className="flex h-8 flex-none items-center rounded-lg px-3 text-[13px] font-semibold no-underline hover:opacity-90"
           style={{ background: "#FF5C5C", color: "#1A0506" }}
         >

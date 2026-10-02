@@ -16,7 +16,7 @@ import { Pill, UrgencyText } from "./ui";
  * deadline) in a single continuous list, then upload the material in bulk.
  */
 export function RecordingSession() {
-  const { pieces, now } = useApp();
+  const { pieces, now, base } = useApp();
   // Freeze the queue when the session starts so finished pieces stay in place.
   const [ids] = useState(() => sessionQueue(pieces, now).map((p) => p.id));
   const queue = ids.map((id) => pieces.find((p) => p.id === id)).filter((p): p is PieceFull => !!p);
@@ -28,7 +28,7 @@ export function RecordingSession() {
     <div className="mx-auto min-h-dvh max-w-[680px] bg-surface pb-16 md:my-7 md:min-h-0 md:rounded-[14px] md:border md:border-white/[0.06]">
       <header className="sticky top-0 z-10 flex flex-col gap-3 border-b bg-surface px-[18px] pt-[max(12px,env(safe-area-inset-top))] pb-3.5" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
         <div className="flex items-center justify-between">
-          <Link href="/" className="-ml-2 flex h-11 items-center px-2 text-sm text-text-2c no-underline hover:text-white">‹ Calendario</Link>
+          <Link href={base || "/"} className="-ml-2 flex h-11 items-center px-2 text-sm text-text-2c no-underline hover:text-white">‹ Calendario</Link>
           <span className="text-xs text-text-3">Sesión de grabación</span>
         </div>
         <div className="flex items-center justify-between gap-4">

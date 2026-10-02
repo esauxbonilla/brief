@@ -14,7 +14,7 @@ import { AgencyAvatar, ChannelChips, ClientAvatar, Pill, StatusLegend, UrgencyTe
 const WEEKDAYS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 
 export function DesktopCalendar() {
-  const { pieces, now, tz, client, agency, filter, setFilter, select } = useApp();
+  const { pieces, now, tz, client, agency, filter, setFilter, select, base } = useApp();
   const today = dayKey(now, tz);
   const [ym, setYm] = useState(() => ({ y: keyParts(today).y, m: keyParts(today).m }));
   const week = currentWeek(now, tz);
@@ -92,7 +92,7 @@ export function DesktopCalendar() {
                   Ver brief
                 </button>
                 {wk.length > 1 && (
-                  <Link href="/grabar" className="flex h-[34px] items-center justify-center rounded-lg border px-3 text-[13px] font-medium no-underline hover:bg-white/5" style={{ borderColor: "rgba(245,184,61,0.5)", color: "#FFF4DE" }}>
+                  <Link href={`${base}/grabar`} className="flex h-[34px] items-center justify-center rounded-lg border px-3 text-[13px] font-medium no-underline hover:bg-white/5" style={{ borderColor: "rgba(245,184,61,0.5)", color: "#FFF4DE" }}>
                     Grabar todo de corrido
                   </Link>
                 )}

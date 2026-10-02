@@ -19,6 +19,12 @@ interface Ctx {
   tz: string;
   now: Date;
   pieces: PieceFull[];
+  /** Where this calendar lives: "" for the client, "/calendario/<id>" for the agency preview. */
+  base: string;
+  /** Agency preview: everything is visible but nothing can be changed. */
+  readOnly: boolean;
+  /** Tells the agency that the preview can't change anything. */
+  blocked: () => void;
   byId: (id: string) => PieceFull | undefined;
   filter: Channel | "all";
   setFilter: (f: Channel | "all") => void;
@@ -55,13 +61,15 @@ async function putFile(pieceId: string, file: File): Promise<string> {
 }
 
 export function ClientState({
-  client, agency, initialPieces, serverNow, initialSelected, children,
+  client, agency, initialPieces, serverNow, initialSelected, base = "", readOnly = false, children,
 }: {
   client: Client;
   agency: Agency;
   initialPieces: PieceFull[];
   serverNow: string;
   initialSelected?: string | null;
+  base?: string;
+  readOnly?: boolean;
   children: ReactNode;
 }) {
   const [pieces, setPieces] = useState(initialPieces);
@@ -105,7 +113,12 @@ export function ClientState({
     showToast("No se pudo guardar. Revisa tu conexión.");
   }, [showToast]);
 
+  const blocked = useCallback(() => {
+    showToast("Vista previa: solo el cliente puede hacer cambios.");
+  }, [showToast]);
+
   const markRecorded = useCallback((id: string) => {
+    if (readOnly) return blocked();
     const p = pieces.find((x) => x.id === id);
     if (!p) return;
     const prev: Status = p.status;
@@ -118,22 +131,28 @@ export function ClientState({
       patch(id, (x) => ({ ...x, status: prev }));
       actions.setRecorded(id, false).catch(fail);
     });
-  }, [pieces, patch, showToast, fail]);
+  }, [readOnly, blocked, pieces, patch, showToast, fail]);
 
   const toggleShot = useCallback((pieceId: string, shotId: string) => {
+    if (readOnly) return blocked();
     const value = !pieces.find((p) => p.id === pieceId)?.shots.find((s) => s.id === shotId)?.done;
     patch(pieceId, (p) => ({ ...p, shots: p.shots.map((s) => (s.id === shotId ? { ...s, done: value } : s)) }));
     actions.toggleShot(shotId, value).catch(fail);
-  }, [pieces, patch, fail]);
+  }, [readOnly, blocked, pieces, patch, fail]);
 
   const toggleBlock = useCallback((pieceId: string, blockId: string) => {
+    if (readOnly) return blocked();
     const value = !pieces.find((p) => p.id === pieceId)?.blocks.find((b) => b.id === blockId)?.recorded;
     patch(pieceId, (p) => ({ ...p, blocks: p.blocks.map((b) => (b.id === blockId ? { ...b, recorded: value } : b)) }));
     actions.toggleBlock(blockId, value).catch(fail);
-  }, [pieces, patch, fail]);
+  }, [readOnly, blocked, pieces, patch, fail]);
 
   const uploadMaterial = useCallback(async (pieceId: string, files: File[]): Promise<boolean> => {
     if (!files.length) return false;
+    if (readOnly) {
+      blocked();
+      return false;
+    }
     const run = async (): Promise<boolean> => {
       setUploads((u) => ({ ...u, [pieceId]: { state: "uploading" } }));
       try {
@@ -152,9 +171,10 @@ export function ClientState({
       }
     };
     return run();
-  }, [patch]);
+  }, [readOnly, blocked, patch]);
 
   const uploadReference = useCallback((pieceId: string, refId: string, file: File) => {
+    if (readOnly) return blocked();
     const key = `ref:${refId}`;
     const run = async () => {
       setUploads((u) => ({ ...u, [key]: { state: "uploading" } }));
@@ -170,12 +190,12 @@ export function ClientState({
       }
     };
     void run();
-  }, [patch]);
+  }, [readOnly, blocked, patch]);
 
   const value = useMemo<Ctx>(() => ({
-    client, agency, tz: client.tz, now, pieces, byId, filter, setFilter, selectedId, select,
+    client, agency, tz: client.tz, now, pieces, base, readOnly, blocked, byId, filter, setFilter, selectedId, select,
     markRecorded, toggleShot, toggleBlock, uploadMaterial, uploadReference, uploads, toast, showToast, dismissToast,
-  }), [client, agency, now, pieces, byId, filter, selectedId, markRecorded, toggleShot, toggleBlock, uploadMaterial, uploadReference, uploads, toast, showToast, dismissToast]);
+  }), [client, agency, now, pieces, base, readOnly, blocked, byId, filter, selectedId, markRecorded, toggleShot, toggleBlock, uploadMaterial, uploadReference, uploads, toast, showToast, dismissToast]);
 
   return <C.Provider value={value}>{children}</C.Provider>;
 }

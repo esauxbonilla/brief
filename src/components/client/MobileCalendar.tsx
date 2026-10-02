@@ -14,7 +14,7 @@ import { AgencyAvatar, ChannelChips, ClientAvatar, UrgencyText } from "./ui";
 const pad = (n: number) => String(n).padStart(2, "0");
 
 export function MobileCalendar() {
-  const { pieces, now, tz, client, filter, setFilter, select, selectedId } = useApp();
+  const { pieces, now, tz, client, filter, setFilter, select, selectedId, base } = useApp();
   const today = dayKey(now, tz);
   const thisWeek = currentWeek(now, tz).start;
   const [off, setOff] = useState(0);
@@ -183,7 +183,7 @@ export function MobileCalendar() {
           )}
           {left.length > 1 && (
             <Link
-              href="/grabar"
+              href={`${base}/grabar`}
               onClick={(e) => e.stopPropagation()}
               className="flex h-11 items-center justify-center rounded-xl border text-sm font-semibold no-underline"
               style={{ borderColor: "rgba(245,184,61,0.5)", color: "#FFF4DE" }}

@@ -151,7 +151,7 @@ export async function reschedule(id: string, publishDay: string) {
 export async function saveScript(id: string, raw: string) {
   const p = await ownPiece(id);
   const blocks = parseScript(raw);
-  if (!blocks.length) throw new Error("No encontré bloques. Usa los encabezados Gancho, Problema, Solución, Prueba social y CTA.");
+  if (!blocks.length) throw new Error("El guion está vacío.");
   await repo.setBlocks(id, blocks);
   refresh(p.client_id);
   return blocks.length;

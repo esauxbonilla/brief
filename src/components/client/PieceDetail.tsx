@@ -373,6 +373,7 @@ export function RefsTab({ p, onOpenRef }: { p: PieceFull; onOpenRef: (r: PieceRe
 
 function RequestedRef({ r, state, onFile, onOpen }: { r: PieceReference; state?: ReturnType<typeof useApp>["uploads"][string]; onFile: (f: File) => void; onOpen: () => void }) {
   const input = useRef<HTMLInputElement>(null);
+  const { readOnly, blocked } = useApp();
   const sent = !!r.uploaded_url;
   return (
     <div className="flex flex-col gap-3 rounded-[14px] border p-3.5" style={{ borderColor: sent ? "rgba(79,217,138,0.35)" : "rgba(245,184,61,0.55)", background: sent ? "#121A14" : "#1E180C" }}>
@@ -388,7 +389,7 @@ function RequestedRef({ r, state, onFile, onOpen }: { r: PieceReference; state?:
         </button>
       ) : (
         <button
-          onClick={() => input.current?.click()}
+          onClick={() => (readOnly ? blocked() : input.current?.click())}
           className="flex h-[120px] cursor-pointer items-center justify-center rounded-[10px] border border-dashed font-mono text-xs"
           style={{ borderColor: "rgba(245,184,61,0.5)", background: "repeating-linear-gradient(135deg, rgba(245,184,61,0.06) 0 8px, transparent 8px 16px)", color: "#C9B38A" }}
         >
@@ -402,8 +403,9 @@ function RequestedRef({ r, state, onFile, onOpen }: { r: PieceReference; state?:
 
 /** "Subir material" + "Ya lo grabé". */
 export function ActionButtons({ p, variant, onRecorded }: { p: PieceFull; variant: Variant; onRecorded?: () => void }) {
-  const { markRecorded, uploadMaterial, uploads } = useApp();
+  const { markRecorded, uploadMaterial, uploads, readOnly, blocked } = useApp();
   const input = useRef<HTMLInputElement>(null);
+  const pick = () => (readOnly ? blocked() : input.current?.click());
   const busy = uploads[p.id]?.state === "uploading";
   const picker = (
     <input
@@ -422,7 +424,7 @@ export function ActionButtons({ p, variant, onRecorded }: { p: PieceFull; varian
         <button onClick={() => { markRecorded(p.id); onRecorded?.(); }} className="h-[52px] flex-1 cursor-pointer rounded-[14px] border bg-transparent text-[15px] font-medium text-text transition-transform active:scale-[0.97]" style={{ borderColor: "rgba(255,255,255,0.14)" }}>
           Ya lo grabé
         </button>
-        <button disabled={busy} onClick={() => input.current?.click()} className="h-[52px] flex-[1.3] cursor-pointer rounded-[14px] border-none bg-amber text-[15px] font-semibold text-amber-ink transition-transform active:scale-[0.97] disabled:opacity-70">
+        <button disabled={busy} onClick={pick} className="h-[52px] flex-[1.3] cursor-pointer rounded-[14px] border-none bg-amber text-[15px] font-semibold text-amber-ink transition-transform active:scale-[0.97] disabled:opacity-70">
           {busy ? "Subiendo…" : "Subir material"}
         </button>
       </div>
@@ -431,7 +433,7 @@ export function ActionButtons({ p, variant, onRecorded }: { p: PieceFull; varian
   return (
     <div className="flex flex-wrap gap-2">
       {picker}
-      <button disabled={busy} onClick={() => input.current?.click()} className="h-11 flex-[1_1_160px] cursor-pointer rounded-[9px] border-none bg-amber text-sm font-semibold text-amber-ink hover:bg-amber-hover disabled:opacity-70">
+      <button disabled={busy} onClick={pick} className="h-11 flex-[1_1_160px] cursor-pointer rounded-[9px] border-none bg-amber text-sm font-semibold text-amber-ink hover:bg-amber-hover disabled:opacity-70">
         {busy ? "Subiendo…" : "Subir material"}
       </button>
       <button onClick={() => markRecorded(p.id)} className="h-11 flex-[1_1_140px] cursor-pointer rounded-[9px] border bg-transparent text-sm font-medium text-text hover:bg-surface-3" style={{ borderColor: "rgba(255,255,255,0.14)" }}>

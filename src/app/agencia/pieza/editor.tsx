@@ -141,24 +141,22 @@ export function ScriptEditor({ piece }: { piece: PieceFull }) {
           ))}
         </div>
       )}
-      <F label={piece.blocks.length ? "Reemplazar guion: pega el texto del Google Doc" : "Pega el guion desde Google Docs"} hint="Encabezados: Gancho · Problema · Solución · Prueba social · CTA">
+      <F label={piece.blocks.length ? "Reemplazar guion: pega el texto del Google Doc" : "Pega el guion desde Google Docs"} hint="Opcional: separa en bloques con Gancho · Problema · Solución · Prueba social · CTA">
         <textarea
           value={raw}
           onChange={(e) => setRaw(e.target.value)}
           rows={8}
-          placeholder={"Gancho (5 s)\n¿Sigues sin…?\nNota: mira a cámara\n\nProblema\n…"}
+          placeholder={"Pega el guion tal cual.\n\nSi quieres bloques, usa encabezados:\nGancho (5 s)\n¿Sigues sin…?\nNota: mira a cámara"}
           className={`${field} py-2.5 font-mono text-[13px]`}
           style={fieldStyle}
         />
       </F>
       {raw.trim() && (
         <div className="flex flex-wrap items-center gap-3 text-[13px]">
-          {preview.length ? (
+          {preview.length > 0 && (
             <span className="text-text-2c">
-              Detecté {preview.length} bloques: {preview.map((b) => `${b.label} (${b.lines.length} ${b.lines.length === 1 ? "línea" : "líneas"})`).join(" · ")}
+              {preview.length === 1 ? "1 bloque" : `${preview.length} bloques`}: {preview.map((b) => `${b.label} (${b.lines.length} ${b.lines.length === 1 ? "línea" : "líneas"})`).join(" · ")}
             </span>
-          ) : (
-            <span className="text-red">No encuentro encabezados. Cada bloque debe empezar con Gancho, Problema, Solución, Prueba social o CTA en su propia línea.</span>
           )}
           <Btn kind="primary" disabled={!preview.length || pending} onClick={() => run(async () => { await A.saveScript(piece.id, raw); setRaw(""); })}>
             Guardar guion
