@@ -195,7 +195,8 @@ create policy refs_agency on piece_references for all using (agency_owns_piece(p
 create policy uploads_read on uploads for select using (can_see_piece(piece_id));
 create policy uploads_agency on uploads for all using (agency_owns_piece(piece_id)) with check (agency_owns_piece(piece_id));
 
-create policy notifications_agency on notifications for select using (agency_owns_client(client_id));
+create policy notifications_agency on notifications for all
+  using (agency_owns_client(client_id)) with check (agency_owns_client(client_id));
 
 -- ── Acciones del cliente ────────────────────────────────────────────────────
 -- El cliente no escribe tablas directamente: solo estas funciones, que validan

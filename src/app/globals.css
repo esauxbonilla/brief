@@ -1,26 +1,105 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-geist-sans), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+@theme {
+  /* base */
+  --color-page: #070708;
+  --color-page-mobile: #050506;
+  --color-surface: #0b0b0d;
+  --color-card: #141518;
+  --color-sheet: #111214;
+  --color-sheet-mobile: #121315;
+  --color-surface-2: #16171a;
+  --color-surface-3: #18191c;
+  --color-surface-4: #1b1c1f;
+  --color-hairline: rgba(255, 255, 255, 0.06);
+  --color-text: #e8e9eb;
+  --color-strong: #f2f3f5;
+  --color-text-2: #d4d6da;
+  --color-text-2b: #c9ccd1;
+  --color-text-2c: #b5b8be;
+  --color-text-3: #7c8087;
+  --color-text-4: #5e6168;
+  --color-text-5: #45484e;
+  --color-text-6: #3a3d42;
+  /* canal */
+  --color-reel: #ff4f8b;
+  --color-story: #2bd4f0;
+  --color-lead: #ff8b3d;
+  --color-carrusel: #a6e83a;
+  /* acción */
+  --color-amber: #f5b83d;
+  --color-amber-hover: #ffc85a;
+  --color-amber-ink: #1a1205;
+  --color-amber-block: #231b0b;
+  --color-red: #ff5c5c;
+  --color-red-ink: #1a0506;
+  --color-green: #4fd98a;
+  --color-blue: #6fa8ff;
+  --color-violet: #b990ff;
+}
+
+html {
+  color-scheme: dark;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (min-width: 768px) {
+  body {
+    background: var(--color-page);
+  }
+}
+
+button {
+  font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+
+a {
+  color: var(--color-amber);
+}
+a:hover {
+  color: #ffd27a;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Títulos: nunca truncar ni partir palabras. */
+.title-wrap {
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
+  text-wrap: pretty;
+}
+
+.label-caps {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-3);
+}
+
+.press {
+  transition: transform 0.12s;
+}
+.press:active {
+  transform: scale(0.98);
 }
