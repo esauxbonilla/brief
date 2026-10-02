@@ -6,13 +6,7 @@ export default async function ClientPage({ params }: PageProps<"/agencia/[client
   const { clientId } = await params;
   const s = await repo.agencySession();
   const client = s?.clients.find((c) => c.id === clientId);
-  if (!client) notFound();
+  if (!s || !client) notFound();
   const pieces = await repo.agencyPieces(client.id);
-  return (
-    <ClientWorkspace
-      client={{ id: client.id, name: client.name, tz: client.tz }}
-      pieces={pieces}
-      serverNow={new Date().toISOString()}
-    />
-  );
+  return <ClientWorkspace client={client} agency={s.agency} pieces={pieces} serverNow={new Date().toISOString()} />;
 }

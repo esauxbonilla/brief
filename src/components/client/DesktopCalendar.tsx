@@ -137,8 +137,19 @@ function NavBtn({ label, onClick, children }: { label: string; onClick: () => vo
 }
 
 function DayCell({ k, inMonth, isToday, thisWeek, items }: { k: DayKey; inMonth: boolean; isToday: boolean; thisWeek: boolean; items: PieceFull[] }) {
+  const { edit } = useApp();
+  const [over, setOver] = useState(false);
+  const drop = edit && {
+    onDragOver: (e: React.DragEvent) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setOver(true); },
+    onDragLeave: () => setOver(false),
+    onDrop: (e: React.DragEvent) => { e.preventDefault(); setOver(false); const id = e.dataTransfer.getData("text/plain"); if (id) edit.move(id, k); },
+  };
   return (
-    <div className="flex min-h-[136px] min-w-0 flex-col gap-1.5 p-2" style={{ background: thisWeek ? "#110F0A" : "#0B0B0D" }}>
+    <div
+      {...drop}
+      className="group flex min-h-[136px] min-w-0 flex-col gap-1.5 p-2"
+      style={{ background: over ? "#1D1A12" : thisWeek ? "#110F0A" : "#0B0B0D", outline: over ? "1px solid rgba(245,184,61,0.6)" : "none", outlineOffset: -1 }}
+    >
       <div className="flex h-5 items-center gap-1.5">
         <span
           className="rounded-[5px] px-[5px] py-px text-xs tabular-nums"
@@ -147,6 +158,16 @@ function DayCell({ k, inMonth, isToday, thisWeek, items }: { k: DayKey; inMonth:
           {keyParts(k).d}
         </span>
         {isToday && <span className="text-[11px] text-text-2c">Hoy</span>}
+        {edit && (
+          <button
+            onClick={() => edit.create(k)}
+            disabled={edit.busy}
+            aria-label={`Nueva pieza el ${shortLabel(k)}`}
+            className="ml-auto flex size-6 cursor-pointer items-center justify-center rounded-md border-none bg-transparent text-base text-text-3 opacity-0 group-hover:opacity-100 hover:bg-white/10 hover:text-white focus:opacity-100"
+          >
+            +
+          </button>
+        )}
       </div>
       {items.map((p) => <MonthCard key={p.id} p={p} inMonth={inMonth} />)}
     </div>
@@ -154,7 +175,8 @@ function DayCell({ k, inMonth, isToday, thisWeek, items }: { k: DayKey; inMonth:
 }
 
 function MonthCard({ p, inMonth }: { p: PieceFull; inMonth: boolean }) {
-  const { now, tz, filter, selectedId, select, client, agency } = useApp();
+  const { now, tz, filter, selectedId, select, client, agency, edit } = useApp();
+  const [dragging, setDragging] = useState(false);
   const st = cardStyle(p, now, tz);
   const dim = filter !== "all" && filter !== p.channel;
   const sel = selectedId === p.id;
@@ -163,8 +185,11 @@ function MonthCard({ p, inMonth }: { p: PieceFull; inMonth: boolean }) {
     <button
       onClick={() => select(p.id)}
       aria-pressed={sel}
-      className="flex cursor-pointer overflow-hidden rounded-md border p-0 text-left text-inherit"
-      style={{ transition: "opacity .2s", opacity: dim ? 0.25 : inMonth ? 1 : 0.55, background: st.bg, borderColor: sel ? "#FFFFFF" : st.border, boxShadow: st.shadow }}
+      draggable={!!edit}
+      onDragStart={edit ? (e) => { e.dataTransfer.setData("text/plain", p.id); e.dataTransfer.effectAllowed = "move"; setDragging(true); } : undefined}
+      onDragEnd={edit ? () => setDragging(false) : undefined}
+      className={`flex overflow-hidden rounded-md border p-0 text-left text-inherit ${edit ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"}`}
+      style={{ transition: "opacity .2s", opacity: dragging ? 0.35 : dim ? 0.25 : inMonth ? 1 : 0.55, background: st.bg, borderColor: sel ? "#FFFFFF" : st.border, boxShadow: st.shadow }}
     >
       <div className="w-[3px] flex-none self-stretch" style={{ background: CHANNELS[p.channel].color }} />
       <div className="flex min-w-0 flex-1 flex-col gap-[7px] py-[7px] pr-2 pl-[9px]">
@@ -180,7 +205,7 @@ function MonthCard({ p, inMonth }: { p: PieceFull; inMonth: boolean }) {
 }
 
 function DetailPanel() {
-  const { byId, selectedId, now, tz } = useApp();
+  const { byId, selectedId, now, tz, edit } = useApp();
   const p = selectedId ? byId(selectedId) : undefined;
   const [tab, setTab] = useState<Tab>("brief");
   const [lastId, setLastId] = useState(selectedId);
@@ -193,11 +218,16 @@ function DetailPanel() {
   const action = p && isPending(p);
 
   return (
-    <div className="sticky top-7 flex min-w-[320px] flex-[0_1_420px] flex-col gap-2.5">
+    <div className={`sticky top-7 flex min-w-[320px] flex-col gap-2.5 ${edit ? "flex-[0_1_520px]" : "flex-[0_1_420px]"}`}>
       <div className="font-mono text-[11px] tracking-[0.06em] text-text-4 uppercase">Detalle · tarjeta abierta</div>
       {!p ? (
         <div className="rounded-[14px] border bg-sheet p-6 text-sm text-text-3" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
-          Toca una pieza del calendario para ver su brief.
+          {edit ? "Toca una pieza para editarla, o + en un día para crear una. Arrastra las tarjetas para cambiarlas de día." : "Toca una pieza del calendario para ver su brief."}
+        </div>
+      ) : edit ? (
+        <div className="flex max-h-[calc(100vh-80px)] overflow-hidden rounded-[14px] border bg-surface" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
+          <div className="w-1 flex-none" style={{ background: CHANNELS[p.channel].color }} />
+          <div className="no-scrollbar min-w-0 flex-1 overflow-y-auto p-4">{edit.panel(p)}</div>
         </div>
       ) : (
         <div className="flex max-h-[calc(100vh-80px)] overflow-hidden rounded-[14px] border bg-sheet" style={{ borderColor: st!.bg === "#2A1214" ? "rgba(255,92,92,0.6)" : action ? "rgba(245,184,61,0.55)" : "rgba(255,255,255,0.08)" }}>

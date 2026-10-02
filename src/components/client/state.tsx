@@ -1,8 +1,10 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
+import * as agencyActions from "@/app/agencia/actions";
 import * as actions from "@/app/actions";
 import { supabaseBrowser } from "@/lib/supabase/browser";
+import { addDays, dayIndex, dayKey, DEADLINE_TIME, zonedTime, type DayKey } from "@/lib/dates";
 import type { Agency, Channel, Client, PieceFull, Status, Upload } from "@/lib/types";
 
 export type UploadState = { state: "uploading" } | { state: "done"; at: string } | { state: "error"; retry: () => void };
@@ -11,6 +13,14 @@ interface Toast {
   id: number;
   text: string;
   undo?: () => void;
+}
+
+/** Agency panel: same calendar, but pieces can be created, dragged and edited. */
+export interface AgencyEdit {
+  create: (day: DayKey) => void;
+  move: (id: string, day: DayKey) => void;
+  panel: (p: PieceFull) => ReactNode;
+  busy: boolean;
 }
 
 interface Ctx {
@@ -25,6 +35,7 @@ interface Ctx {
   readOnly: boolean;
   /** Tells the agency that the preview can't change anything. */
   blocked: () => void;
+  edit: AgencyEdit | null;
   byId: (id: string) => PieceFull | undefined;
   filter: Channel | "all";
   setFilter: (f: Channel | "all") => void;
@@ -61,7 +72,7 @@ async function putFile(pieceId: string, file: File): Promise<string> {
 }
 
 export function ClientState({
-  client, agency, initialPieces, serverNow, initialSelected, base = "", readOnly = false, children,
+  client, agency, initialPieces, serverNow, initialSelected, base = "", readOnly = false, agencyPanel, children,
 }: {
   client: Client;
   agency: Agency;
@@ -70,6 +81,8 @@ export function ClientState({
   initialSelected?: string | null;
   base?: string;
   readOnly?: boolean;
+  /** Turns on agency editing; renders the editor for the open piece. */
+  agencyPanel?: (p: PieceFull) => ReactNode;
   children: ReactNode;
 }) {
   const [pieces, setPieces] = useState(initialPieces);
@@ -192,10 +205,42 @@ export function ClientState({
     void run();
   }, [readOnly, blocked, patch]);
 
+  const [busy, startEdit] = useTransition();
+  const edit = useMemo<AgencyEdit | null>(() => {
+    if (!agencyPanel) return null;
+    return {
+      busy,
+      panel: agencyPanel,
+      create: (day) => startEdit(async () => {
+        try {
+          select(await agencyActions.quickCreate(client.id, day));
+        } catch (e) {
+          fail(e);
+        }
+      }),
+      move: (id, day) => {
+        const p = pieces.find((x) => x.id === id);
+        if (!p) return;
+        const delta = dayIndex(day) - dayIndex(dayKey(p.record_due_at, client.tz));
+        if (!delta) return;
+        const publish = zonedTime(addDays(dayKey(p.publish_at, client.tz), delta), "12:00", client.tz).toISOString();
+        patch(id, (x) => ({ ...x, record_due_at: zonedTime(day, DEADLINE_TIME, client.tz).toISOString(), publish_at: publish }));
+        startEdit(async () => {
+          try {
+            await agencyActions.movePiece(id, day);
+          } catch (e) {
+            patch(id, () => p);
+            fail(e);
+          }
+        });
+      },
+    };
+  }, [agencyPanel, busy, client.id, client.tz, pieces, patch, fail]);
+
   const value = useMemo<Ctx>(() => ({
-    client, agency, tz: client.tz, now, pieces, base, readOnly, blocked, byId, filter, setFilter, selectedId, select,
+    client, agency, tz: client.tz, now, pieces, base, readOnly, blocked, edit, byId, filter, setFilter, selectedId, select,
     markRecorded, toggleShot, toggleBlock, uploadMaterial, uploadReference, uploads, toast, showToast, dismissToast,
-  }), [client, agency, now, pieces, base, readOnly, blocked, byId, filter, selectedId, markRecorded, toggleShot, toggleBlock, uploadMaterial, uploadReference, uploads, toast, showToast, dismissToast]);
+  }), [client, agency, now, pieces, base, readOnly, blocked, edit, byId, filter, selectedId, markRecorded, toggleShot, toggleBlock, uploadMaterial, uploadReference, uploads, toast, showToast, dismissToast]);
 
   return <C.Provider value={value}>{children}</C.Provider>;
 }

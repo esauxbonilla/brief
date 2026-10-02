@@ -10,7 +10,7 @@ export default async function PiecePage({ params }: PageProps<"/agencia/pieza/[i
   const client = p && s?.clients.find((c) => c.id === p.client_id);
   if (!p || !client) notFound();
   return (
-    <div className="flex max-w-[760px] flex-col gap-5">
+    <div className="mx-auto flex max-w-[760px] flex-col gap-5 px-6 py-6">
       <Link href={`/agencia/${client.id}`} className="text-[13px] no-underline">‹ {client.name}</Link>
       <PieceEditor piece={p} tz={client.tz} now={new Date().toISOString()} />
     </div>

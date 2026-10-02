@@ -14,7 +14,7 @@ import { AgencyAvatar, ChannelChips, ClientAvatar, UrgencyText } from "./ui";
 const pad = (n: number) => String(n).padStart(2, "0");
 
 export function MobileCalendar() {
-  const { pieces, now, tz, client, filter, setFilter, select, selectedId, base } = useApp();
+  const { pieces, now, tz, client, filter, setFilter, select, selectedId, base, edit } = useApp();
   const today = dayKey(now, tz);
   const thisWeek = currentWeek(now, tz).start;
   const [off, setOff] = useState(0);
@@ -248,6 +248,9 @@ export function MobileCalendar() {
                 <span className="text-[13px] font-semibold capitalize" style={{ color: items.length ? (isToday ? "#FFFFFF" : "#C9CCD1") : "#45484E" }}>{longDayLabel(k)}</span>
                 {isToday && <span className="rounded-full bg-text px-[7px] py-px text-[11px] font-semibold text-surface">Hoy</span>}
                 {!items.length && <span className="text-xs text-text-5">· Nada programado</span>}
+                {edit && (
+                  <button onClick={() => edit.create(k)} disabled={edit.busy} aria-label={`Nueva pieza el ${longDayLabel(k)}`} className="ml-auto h-7 cursor-pointer rounded-lg border-none bg-white/5 px-2.5 text-[13px] text-text-2c">+ Pieza</button>
+                )}
               </div>
               {items.map((p) => <WeekCard key={p.id} p={p} onOpen={() => open(p.id)} />)}
             </div>
@@ -301,6 +304,7 @@ function BottomSheet({ p, open, onClose }: { p: PieceFull | undefined; open: boo
   const [lastId, setLastId] = useState(p?.id);
   const y0 = useRef(0);
   const { openRef, openReading, overlays } = useDetailOverlays(p);
+  const { edit } = useApp();
 
   if (lastId !== p?.id) {
     setLastId(p?.id);
@@ -356,6 +360,10 @@ function BottomSheet({ p, open, onClose }: { p: PieceFull | undefined; open: boo
               <div className="h-[5px] w-10 self-center rounded-[3px] bg-text-6" />
               <DetailHeader p={p} variant="mobile" />
             </div>
+            {edit ? (
+              <div className="no-scrollbar flex-1 overflow-y-auto overscroll-contain px-3 pt-3 pb-8">{edit.panel(p)}</div>
+            ) : (
+            <>
             <div className="flex-none px-[18px] pt-3.5">
               <DetailTabs p={p} tab={tab} setTab={setTab} />
             </div>
@@ -370,6 +378,8 @@ function BottomSheet({ p, open, onClose }: { p: PieceFull | undefined; open: boo
               </div>
             ) : (
               action && tab === "brief" && <ActionButtons p={p} variant="mobile" onRecorded={onClose} />
+            )}
+            </>
             )}
           </>
         )}
