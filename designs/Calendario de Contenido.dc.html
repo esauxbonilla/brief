@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#070708;color:#E8E9EB;font-family:'Geist',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#F5B83D}a:hover{color:#FFD27A}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="padding:28px; display:flex; flex-wrap:wrap; gap:28px; align-items:flex-start; min-height:100vh; box-sizing:border-box">
+
+  <div data-screen-label="Vista mensual" style="flex:1 1 1000px; max-width:1440px; min-width:0; background:#0B0B0D; border:1px solid rgba(255,255,255,0.06); border-radius:14px; overflow:clip">
+
+    <div style="position:sticky; top:0; z-index:5; background:#0B0B0D; padding:22px 24px 16px; display:flex; flex-wrap:wrap; gap:20px; align-items:flex-start; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.05)">
+      <div style="display:flex; flex-direction:column; gap:10px">
+        <div style="font-size:12px; color:#7C8087; letter-spacing:0.02em">Marco Ruiz · Calendario de contenido · con Estudio Norte</div>
+        <div style="display:flex; align-items:center; gap:14px">
+          <h1 style="margin:0; font-size:30px; font-weight:600; letter-spacing:-0.02em; min-width:220px">{{ monthLabel }}</h1>
+          <div style="display:flex; gap:6px">
+            <button onClick="{{ prev }}" aria-label="Mes anterior" style="width:34px; height:34px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background:#141518; color:#E8E9EB; font-size:16px; cursor:pointer" style-hover="background:#1C1D21">‹</button>
+            <button onClick="{{ next }}" aria-label="Mes siguiente" style="width:34px; height:34px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background:#141518; color:#E8E9EB; font-size:16px; cursor:pointer" style-hover="background:#1C1D21">›</button>
+            <button onClick="{{ goToday }}" style="height:34px; padding:0 12px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background:transparent; color:#B5B8BE; font-size:13px; cursor:pointer" style-hover="color:#fff">Hoy</button>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex; align-items:center; gap:18px; padding:14px 18px; border-radius:12px; background:#231B0B; border:1px solid #F5B83D; min-width:340px">
+        <div style="display:flex; flex-direction:column; gap:4px">
+          <div style="font-size:13px; color:#F2DDB0">Lo que tienes que grabar esta semana</div>
+          <div style="display:flex; align-items:baseline; gap:8px">
+            <span style="font-size:34px; font-weight:700; color:#F5B83D; letter-spacing:-0.02em; line-height:1">{{ weekCount }}</span>
+            <span style="font-size:18px; font-weight:600; color:#FFF4DE">{{ weekUnit }}</span>
+          </div>
+          <div style="font-size:13px; color:#FFF4DE">Entrega: <strong style="font-weight:600">{{ weekDeadline }}</strong></div>
+        </div>
+        <button onClick="{{ openFirst }}" style="margin-left:auto; height:38px; padding:0 14px; border-radius:8px; border:none; background:#F5B83D; color:#1A1205; font-weight:600; font-size:13px; cursor:pointer" style-hover="background:#FFC85A">Ver brief</button>
+      </div>
+    </div>
+
+    <div style="padding:14px 24px; display:flex; flex-wrap:wrap; gap:16px; align-items:center; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.05)">
+      <div style="display:flex; flex-wrap:wrap; gap:8px">
+        <sc-for list="{{ chips }}" as="ch" hint-placeholder-count="5">
+          <button onClick="{{ ch.onClick }}" style="display:flex; align-items:center; gap:8px; height:32px; padding:0 14px; border-radius:999px; cursor:pointer; font-size:13px; font-weight:{{ ch.weight }}; background:{{ ch.bg }}; color:{{ ch.fg }}; border:1px solid {{ ch.border }}">
+            <span style="width:8px; height:8px; border-radius:50%; background:{{ ch.dot }}"></span>{{ ch.label }}
+          </button>
+        </sc-for>
+      </div>
+      <div style="display:flex; flex-wrap:wrap; gap:14px; font-size:12px; color:#7C8087">
+        <sc-for list="{{ legend }}" as="l" hint-placeholder-count="5">
+          <span style="display:flex; align-items:center; gap:6px"><span style="width:7px; height:7px; border-radius:50%; background:{{ l.color }}"></span>{{ l.name }}</span>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="overflow-x:auto"><div style="min-width:1000px">
+    <div style="display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); padding:0 24px; font-size:11px; font-weight:500; text-transform:uppercase; letter-spacing:0.08em; color:#5E6168">
+      <div style="padding:10px 8px">Lun</div><div style="padding:10px 8px">Mar</div><div style="padding:10px 8px">Mié</div><div style="padding:10px 8px">Jue</div><div style="padding:10px 8px">Vie</div><div style="padding:10px 8px">Sáb</div><div style="padding:10px 8px">Dom</div>
+    </div>
+
+    <div style="margin:0 24px 24px; display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:1px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.05); border-radius:10px; overflow:hidden">
+      <sc-for list="{{ days }}" as="d" hint-placeholder-count="35">
+        <div style="min-height:136px; padding:8px; display:flex; flex-direction:column; gap:6px; background:{{ d.bg }}; min-width:0">
+          <div style="display:flex; align-items:center; gap:6px; height:20px">
+            <span style="font-size:12px; font-weight:{{ d.numWeight }}; color:{{ d.numColor }}; background:{{ d.numBg }}; border-radius:5px; padding:1px 5px; font-variant-numeric:tabular-nums">{{ d.num }}</span>
+            <sc-if value="{{ d.isToday }}" hint-placeholder-val="{{ false }}"><span style="font-size:11px; color:#B5B8BE">Hoy</span></sc-if>
+          </div>
+          <sc-for list="{{ d.items }}" as="c" hint-placeholder-count="0">
+            <div onClick="{{ c.open }}" style="display:flex; border-radius:6px; overflow:hidden; cursor:pointer; transition:opacity .2s; opacity:{{ c.opacity }}; background:{{ c.bg }}; border:1px solid {{ c.border }}; box-shadow:{{ c.shadow }}">
+              <div style="width:3px; flex:none; background:{{ c.chColor }}"></div>
+              <div style="flex:1; min-width:0; padding:7px 8px 7px 9px; display:flex; flex-direction:column; gap:7px">
+                <div style="font-size:13px; line-height:1.25; font-weight:{{ c.titleWeight }}; color:{{ c.titleColor }}; overflow-wrap:normal; word-break:normal; hyphens:none; text-wrap:pretty">{{ c.title }}</div>
+                <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:5px 6px">
+                  <span style="font-size:11px; font-weight:600; padding:2px 7px; border-radius:999px; white-space:nowrap; background:{{ c.pillBg }}; color:{{ c.pillFg }}">{{ c.pill }}</span>
+                  <sc-if value="{{ c.isClient }}" hint-placeholder-val="{{ false }}">
+                    <span title="Te toca a ti" style="width:18px; height:18px; flex:none; border-radius:50%; background:#E9D3A8; color:#2A1F0C; font-size:8px; font-weight:700; display:flex; align-items:center; justify-content:center">MR</span>
+                  </sc-if>
+                  <sc-if value="{{ c.isAgency }}" hint-placeholder-val="{{ false }}">
+                    <span title="Lo tiene Estudio Norte" style="width:18px; height:18px; flex:none; border-radius:4px; background:#24262B; color:#8A8D93; font-family:'Geist Mono',monospace; font-size:8px; display:flex; align-items:center; justify-content:center">EN</span>
+                  </sc-if>
+                </div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </sc-for>
+    </div>
+    </div></div>
+  </div>
+
+  <div data-screen-label="Detalle de tarjeta" style="flex:0 1 420px; min-width:320px; display:flex; flex-direction:column; gap:10px; position:sticky; top:28px">
+    <div style="font-family:'Geist Mono',monospace; font-size:11px; color:#5E6168; letter-spacing:0.06em; text-transform:uppercase">Detalle · tarjeta abierta</div>
+    <div style="background:#111214; border:1px solid {{ sel.frameBorder }}; border-radius:14px; overflow:hidden; display:flex">
+      <div style="width:4px; flex:none; background:{{ sel.chColor }}"></div>
+      <div style="flex:1; min-width:0; padding:22px 22px 20px; display:flex; flex-direction:column; gap:20px">
+
+        <div style="display:flex; flex-direction:column; gap:10px">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:10px">
+            <span style="font-size:12px; font-weight:600; color:{{ sel.chColor }}">{{ sel.chName }}</span>
+            <span style="font-size:12px; font-weight:600; padding:3px 10px; border-radius:999px; background:{{ sel.pillBg }}; color:{{ sel.pillFg }}">{{ sel.pill }}</span>
+          </div>
+          <h2 style="margin:0; font-size:24px; line-height:1.15; font-weight:600; letter-spacing:-0.015em; text-wrap:balance">{{ sel.title }}</h2>
+          <div style="display:flex; align-items:center; gap:8px; font-size:13px; color:#B5B8BE">
+            <sc-if value="{{ sel.isClient }}" hint-placeholder-val="{{ true }}"><span style="width:20px; height:20px; border-radius:50%; background:#E9D3A8; color:#2A1F0C; font-size:9px; font-weight:700; display:flex; align-items:center; justify-content:center">MR</span></sc-if>
+            <sc-if value="{{ sel.isAgency }}" hint-placeholder-val="{{ false }}"><span style="width:20px; height:20px; border-radius:5px; background:#24262B; color:#8A8D93; font-family:'Geist Mono',monospace; font-size:9px; display:flex; align-items:center; justify-content:center">EN</span></sc-if>
+            <span>{{ sel.ownerText }}</span>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1px; background:rgba(255,255,255,0.06); border-radius:8px; overflow:hidden">
+          <div style="background:#16171A; padding:10px 12px; display:flex; flex-direction:column; gap:3px"><span style="font-size:11px; color:#7C8087">{{ sel.dateVerb }}</span><span style="font-size:14px; font-weight:600">{{ sel.dateLabel }}</span></div>
+          <div style="background:#16171A; padding:10px 12px; display:flex; flex-direction:column; gap:3px"><span style="font-size:11px; color:#7C8087">Formato</span><span style="font-size:14px; font-weight:600">{{ sel.formato }}</span></div>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:6px">
+          <div style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; color:#7C8087">Para qué sirve</div>
+          <p style="margin:0; font-size:14px; line-height:1.5; color:#D4D6DA; text-wrap:pretty">{{ sel.objetivo }}</p>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:6px">
+          <div style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; color:#7C8087">Primera frase a cámara</div>
+          <p style="margin:0; font-size:15px; line-height:1.45; color:#FFF; font-weight:500; text-wrap:pretty">{{ sel.hook }}</p>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:8px">
+          <div style="display:flex; justify-content:space-between; align-items:baseline">
+            <div style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; color:#7C8087">Tomas que necesitamos</div>
+            <span style="font-size:12px; color:#B5B8BE; font-variant-numeric:tabular-nums">{{ sel.progress }}</span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:2px">
+            <sc-for list="{{ sel.tomas }}" as="t" hint-placeholder-count="4">
+              <div onClick="{{ t.toggle }}" style="display:flex; gap:11px; align-items:flex-start; padding:9px 8px; border-radius:7px; cursor:pointer" style-hover="background:#18191C">
+                <span style="width:18px; height:18px; flex:none; margin-top:1px; border-radius:5px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:#1A1205; background:{{ t.boxBg }}; border:1.5px solid {{ t.boxBorder }}">
+                  <sc-if value="{{ t.done }}" hint-placeholder-val="{{ false }}">✓</sc-if>
+                </span>
+                <span style="font-size:14px; line-height:1.4; color:{{ t.color }}; text-decoration:{{ t.deco }}">{{ t.text }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:6px">
+          <div style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; color:#7C8087">Ten en cuenta</div>
+          <sc-for list="{{ sel.notas }}" as="n" hint-placeholder-count="3">
+            <div style="font-size:13px; line-height:1.45; color:#B5B8BE; display:flex; gap:8px"><span style="color:#5E6168">—</span><span>{{ n }}</span></div>
+          </sc-for>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:8px">
+          <div style="display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:4px">
+            <sc-for list="{{ sel.steps }}" as="s" hint-placeholder-count="5">
+              <div style="display:flex; flex-direction:column; gap:5px">
+                <div style="height:3px; border-radius:2px; background:{{ s.bar }}"></div>
+                <span style="font-size:10.5px; color:{{ s.color }}; font-weight:{{ s.weight }}">{{ s.name }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <sc-if value="{{ sel.isGrabar }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex; gap:8px; flex-wrap:wrap">
+            <button style="flex:1 1 160px; height:44px; border-radius:9px; border:none; background:#F5B83D; color:#1A1205; font-size:14px; font-weight:600; cursor:pointer" style-hover="background:#FFC85A">Subir material</button>
+            <button onClick="{{ sel.markRecorded }}" style="flex:1 1 140px; height:44px; border-radius:9px; border:1px solid rgba(255,255,255,0.14); background:transparent; color:#E8E9EB; font-size:14px; font-weight:500; cursor:pointer" style-hover="background:#18191C">Ya lo grabé</button>
+          </div>
+        </sc-if>
+        <sc-if value="{{ sel.isAgency }}" hint-placeholder-val="{{ false }}">
+          <div style="font-size:13px; color:#7C8087; padding:12px; border-radius:8px; background:#16171A">No tienes que hacer nada con esta pieza. Te avisaremos si necesitamos algo.</div>
+        </sc-if>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const CH={reel:{name:'Reels',color:'#FF4F8B'},story:{name:'Stories',color:'#2BD4F0'},lead:{name:'Lead Magnets',color:'#FF8B3D'},carrusel:{name:'Carruseles',color:'#A6E83A'}};
+const ST={grabar:{name:'Por grabar',color:'#F5B83D'},grabado:{name:'Grabado',color:'#6FA8FF'},edicion:{name:'En edición',color:'#B990FF'},listo:{name:'Listo',color:'#4FD98A'},publicado:{name:'Publicado',color:'#7C8087'}};
+const ORDER=['grabar','grabado','edicion','listo','publicado'];
+const TODAY=new Date(2026,9,1);
+const MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const MC=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+const DIAS=['dom','lun','mar','mié','jue','vie','sáb'];
+const ITEMS=[
+['2026-09-28','reel','Calentamiento de 5 minutos','publicado'],['2026-09-29','carrusel','Mitos del cardio en ayunas','publicado'],['2026-09-30','story','Encuesta: ¿qué entrenas hoy?','publicado'],
+['2026-10-01','reel','Sentadilla búlgara paso a paso','grabar'],['2026-10-01','story','Mi rutina de mañana','grabar'],['2026-10-02','reel','3 errores en peso muerto','grabar'],['2026-10-02','carrusel','Cuánta proteína necesitas','listo'],['2026-10-03','lead','Intro guía de proteína','grabar'],['2026-10-04','story','Detrás de cámaras','grabado'],
+['2026-10-05','reel','Rutina express de 15 minutos','edicion'],['2026-10-06','carrusel','5 snacks altos en proteína','edicion'],['2026-10-07','story','Día de pierna conmigo','grabado'],['2026-10-08','lead','Plan semanal descargable','listo'],['2026-10-09','reel','Respondo vuestras preguntas','grabado'],['2026-10-10','story','Preguntas y respuestas','edicion'],
+['2026-10-12','reel','Movilidad de cadera diaria','grabar'],['2026-10-13','carrusel','Cómo leer etiquetas','edicion'],['2026-10-14','story','Check-in de alumnos','grabar'],['2026-10-15','reel','Press banca sin dolor','grabar'],['2026-10-17','carrusel','Hábitos que sí funcionan','listo'],
+['2026-10-19','reel','Transformación de Laura','grabar'],['2026-10-20','lead','Reto de 7 días','grabar'],['2026-10-22','story','Mi comida post-entreno','grabar'],['2026-10-23','carrusel','Descanso y masa muscular','edicion'],
+['2026-10-26','reel','Abdominales sin crunch','grabar'],['2026-10-28','carrusel','Errores de principiante','edicion'],['2026-10-30','story','Halloween en el gym','grabar']
+].map((a,i)=>({id:'p'+i,date:a[0],ch:a[1],title:a[2],status:a[3]}));
+const BRIEFS={
+'Sentadilla búlgara paso a paso':{objetivo:'Enseñar la técnica correcta de un ejercicio que tus alumnos hacen mal. Buscamos que lo guarden para su día de pierna.',formato:'Vertical · 30–45 s',hook:'«Si te duele la rodilla en la búlgara, mira esto.»',tomas:['Plano general de perfil: 3 repeticiones lentas','Primer plano del pie delantero bien apoyado','El error: rodilla hacia dentro (exagéralo)','La corrección: 3 repeticiones bien hechas','Cierre a cámara: «Guárdalo para tu día de pierna»'],notas:['Luz natural, con la ventana de frente','Camiseta lisa, sin logos','Graba cada toma 2 o 3 veces; nosotros elegimos']},
+'Mi rutina de mañana':{objetivo:'Mostrar tu día a día para que tu audiencia te sienta cercano.',formato:'Vertical · 5 clips de 5 s',hook:'«Son las 6:30 y así empieza mi día.»',tomas:['Despertador y primer vaso de agua','Movilidad 2 minutos, cámara fija','Desayuno visto desde arriba','Selfie a cámara: «¿Y tú cómo empiezas?»'],notas:['No hace falta hablar en todos los clips','Sonido ambiente está bien']},
+'3 errores en peso muerto':{objetivo:'Vídeo educativo corto que genere comentarios y compartidos.',formato:'Vertical · 40–60 s',hook:'«El 90% hace mal el peso muerto. Estos son los 3 errores.»',tomas:['Intro a cámara con la barra detrás','Error 1: espalda redondeada (de perfil)','Error 2: barra lejos del cuerpo','Error 3: tirar con los brazos','Versión correcta completa, de perfil'],notas:['Peso ligero, la técnica es lo que importa','Cámara a la altura de la cadera']},
+'Intro guía de proteína':{objetivo:'Vídeo de bienvenida que verá quien descargue la guía gratuita.',formato:'Horizontal · 60–90 s',hook:'«Gracias por descargar la guía. Te cuento cómo sacarle partido.»',tomas:['Presentación: quién eres y para quién es la guía','Los 3 puntos clave de la guía','Invitación a escribirte por mensaje directo'],notas:['Fondo ordenado, sin espejo detrás','Mira a la lente, no a la pantalla']}};
+const GEN={reel:{formato:'Vertical · 30–45 s',tomas:['Intro a cámara','Demostración del ejercicio','Cierre con llamada a la acción']},story:{formato:'Vertical · 3–5 clips',tomas:['Clip de contexto','Clip principal','Pregunta a la audiencia']},lead:{formato:'Horizontal · 60–90 s',tomas:['Presentación a cámara','Contenido principal','Cierre']},carrusel:{formato:'Carrusel · 8 diapositivas',tomas:['Texto redactado por la agencia','Diseño de diapositivas','Revisión final']}};
+const brief=it=>BRIEFS[it.title]||{objetivo:'Pieza planificada por Estudio Norte para este mes.',formato:GEN[it.ch].formato,hook:it.ch==='carrusel'?'Sin grabación: lo diseña la agencia.':'Te enviaremos el guion completo antes de la fecha.',tomas:GEN[it.ch].tomas,notas:['El brief detallado llega 7 días antes']};
+const pd=s=>{const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)};
+const ky=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const wkStart=dt=>{const d=new Date(dt);d.setDate(d.getDate()-((d.getDay()+6)%7));return d};
+const WS=wkStart(TODAY),WE=new Date(WS);WE.setDate(WS.getDate()+6);
+const inWeek=it=>{const d=pd(it.date);return d>=WS&&d<=WE};
+const lbl=d=>DIAS[d.getDay()]+' '+d.getDate()+' '+MC[d.getMonth()];
+
+class Component extends DCLogic {
+  state={y:2026,m:9,filter:'all',sel:'p3',over:{},checks:{}};
+  st(it){return this.state.over[it.id]||it.status}
+  renderVals(){
+    const s=this.state, f=s.filter;
+    const shift=n=>()=>this.setState(p=>{const d=new Date(p.y,p.m+n,1);return{y:d.getFullYear(),m:d.getMonth()}});
+    const byDate={};ITEMS.forEach(it=>(byDate[it.date]=byDate[it.date]||[]).push(it));
+    const first=new Date(s.y,s.m,1),start=wkStart(first),last=new Date(s.y,s.m+1,0);
+    const end=new Date(last);end.setDate(last.getDate()+(6-((last.getDay()+6)%7)));
+    const days=[];
+    for(let d=new Date(start);d<=end;d.setDate(d.getDate()+1)){
+      const dd=new Date(d),inM=dd.getMonth()===s.m,isToday=ky(dd)===ky(TODAY),cw=dd>=WS&&dd<=WE;
+      const items=(byDate[ky(dd)]||[]).map(it=>{
+        const status=this.st(it),now=status==='grabar'&&cw,later=status==='grabar'&&!cw,sel=s.sel===it.id,S=ST[status];
+        const dim=f!=='all'&&f!==it.ch;
+        return {title:it.title,chColor:CH[it.ch].color,pill:S.name,isClient:status==='grabar',isAgency:status!=='grabar',
+          open:()=>this.setState({sel:it.id}),
+          opacity:dim?0.25:(inM?1:0.55),
+          bg:now?'#2A2110':later?'#19160F':'#141518',
+          border:sel?'#FFFFFF':now?'#F5B83D':later?'rgba(245,184,61,0.4)':'rgba(255,255,255,0.04)',
+          shadow:now?'0 0 0 3px rgba(245,184,61,0.12), 0 6px 18px rgba(0,0,0,0.4)':'none',
+          titleColor:now?'#FFF4DE':later?'#E6DFD0':status==='publicado'?'#62666D':'#9DA1A8',
+          titleWeight:status==='grabar'?600:500,
+          pillBg:now?'#F5B83D':status==='publicado'?'rgba(255,255,255,0.05)':S.color+'1F',
+          pillFg:now?'#1A1205':S.color};
+      });
+      days.push({num:dd.getDate(),isToday,items,
+        bg:cw?'#110F0A':'#0B0B0D',
+        numColor:isToday?'#0B0B0D':inM?'#8A8D93':'#3A3D42',numBg:isToday?'#E8E9EB':'transparent',numWeight:isToday?700:500});
+    }
+    const chipDefs=[['all','Todo','#E8E9EB'],...Object.entries(CH).map(([k,v])=>[k,v.name,v.color])];
+    const chips=chipDefs.map(([k,label,color])=>{const a=f===k;return{label,onClick:()=>this.setState({filter:k}),
+      bg:a?color:'transparent',fg:a?'#0B0B0D':'#C9CCD1',border:a?color:'rgba(255,255,255,0.12)',dot:a?'#0B0B0D':color,weight:a?600:500}});
+    const legend=ORDER.map(k=>({name:ST[k].name,color:ST[k].color}));
+    const wk=ITEMS.filter(it=>inWeek(it)&&this.st(it)==='grabar');
+    const lastD=wk.length?wk.map(it=>pd(it.date)).sort((a,b)=>b-a)[0]:null;
+    // selected
+    const it=ITEMS.find(x=>x.id===s.sel)||ITEMS[3],status=this.st(it),S=ST[status],b=brief(it),isG=status==='grabar';
+    const ck=s.checks[it.id]||{},si=ORDER.indexOf(status);
+    const tomas=b.tomas.map((text,i)=>{const done=isG?!!ck[i]:true;return{text,done,
+      toggle:()=>isG&&this.setState(p=>({checks:{...p.checks,[it.id]:{...(p.checks[it.id]||{}),[i]:!ck[i]}}})),
+      boxBg:done?(isG?'#F5B83D':'#3A3D42'):'transparent',boxBorder:done?(isG?'#F5B83D':'#3A3D42'):'#5E6168',
+      color:done&&!isG?'#7C8087':'#E8E9EB',deco:done&&isG?'line-through':'none'}});
+    const nDone=tomas.filter(t=>t.done).length;
+    const sel={title:it.title,chName:CH[it.ch].name,chColor:CH[it.ch].color,pill:S.name,
+      pillBg:isG?'#F5B83D':S.color+'1F',pillFg:isG?'#1A1205':S.color,
+      frameBorder:isG?'rgba(245,184,61,0.55)':'rgba(255,255,255,0.08)',
+      isClient:isG,isAgency:!isG,ownerText:isG?'Te toca a ti grabarlo':'Lo tiene Estudio Norte',
+      dateVerb:isG?'Grábalo antes del':'Se publica el',dateLabel:lbl(pd(it.date)),
+      formato:b.formato,objetivo:b.objetivo,hook:b.hook,tomas,notas:b.notas,isGrabar:isG,
+      progress:nDone+' de '+tomas.length+' listas',
+      steps:ORDER.map((k,i)=>({name:ST[k].name,bar:i<si?'#3A3D42':i===si?ST[k].color:'#1F2024',color:i===si?ST[k].color:'#5E6168',weight:i===si?600:500})),
+      markRecorded:()=>this.setState(p=>({over:{...p.over,[it.id]:'grabado'}}))};
+    return {monthLabel:MESES[s.m]+' '+s.y,prev:shift(-1),next:shift(1),goToday:()=>this.setState({y:TODAY.getFullYear(),m:TODAY.getMonth()}),
+      weekCount:wk.length,weekUnit:wk.length===1?'pieza':'piezas',
+      weekDeadline:lastD?'antes del '+lbl(lastD)+', 20:00':'nada pendiente',
+      openFirst:()=>wk[0]&&this.setState({sel:wk[0].id,filter:'all',y:TODAY.getFullYear(),m:TODAY.getMonth()}),
+      chips,legend,days,sel};
+  }
+}
+</script>
+</body>
+</html>

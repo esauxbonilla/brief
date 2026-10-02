@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#050506;color:#E8E9EB;font-family:'Geist',system-ui,sans-serif;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+a{color:#F5B83D}a:hover{color:#FFD27A}
+button{font-family:inherit;-webkit-tap-highlight-color:transparent}
+.ns::-webkit-scrollbar{display:none}
+</style>
+</helmet>
+<div style="min-height:100vh; display:flex; align-items:center; justify-content:center; padding:32px 16px; box-sizing:border-box">
+  <div data-screen-label="Móvil" style="width:390px; height:844px; flex:none; position:relative; border-radius:46px; overflow:hidden; background:#0B0B0D; border:1px solid #232428; box-shadow:0 30px 80px rgba(0,0,0,0.6)">
+
+    <div style="height:48px; padding:0 30px; display:flex; align-items:center; justify-content:space-between; font-size:15px; font-weight:600; position:relative; z-index:3; background:#0B0B0D">
+      <span>9:41</span>
+      <span style="width:24px; height:11px; border:1.5px solid #E8E9EB; border-radius:3px; padding:1px; box-sizing:border-box; display:flex"><span style="flex:1; background:#E8E9EB; border-radius:1px"></span></span>
+    </div>
+
+    <div ref="{{ scrollerRef }}" class="ns" style="position:absolute; top:48px; left:0; right:0; bottom:0; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:none">
+
+      <div style="padding:6px 18px 14px; display:flex; flex-direction:column; gap:14px">
+        <div style="display:flex; align-items:center; justify-content:space-between">
+          <div style="display:flex; flex-direction:column; gap:2px">
+            <span style="font-size:12px; color:#7C8087">Hola, Marco</span>
+            <button onClick="{{ toggleMonth }}" style="display:flex; align-items:center; gap:6px; padding:0; border:none; background:none; color:#E8E9EB; font-size:26px; font-weight:600; letter-spacing:-0.02em; cursor:pointer; min-height:44px">
+              {{ monthLabel }}<span style="font-size:14px; color:#7C8087; display:inline-block; transition:transform .25s; transform:{{ chevronRot }}">▾</span>
+            </button>
+          </div>
+          <span style="width:36px; height:36px; border-radius:50%; background:#E9D3A8; color:#2A1F0C; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center">MR</span>
+        </div>
+
+        <div style="max-height:{{ monthMax }}; opacity:{{ monthOpacity }}; overflow:hidden; transition:max-height .32s cubic-bezier(.2,.8,.2,1), opacity .2s">
+          <div style="padding:4px 0 6px; display:flex; flex-direction:column; gap:6px">
+            <div style="display:flex; align-items:center; justify-content:space-between">
+              <button onClick="{{ prevMonth }}" aria-label="Mes anterior" style="width:44px; height:36px; border:none; background:none; color:#B5B8BE; font-size:18px; cursor:pointer">‹</button>
+              <span style="font-size:13px; color:#B5B8BE">Toca un día para ir a esa semana</span>
+              <button onClick="{{ nextMonth }}" aria-label="Mes siguiente" style="width:44px; height:36px; border:none; background:none; color:#B5B8BE; font-size:18px; cursor:pointer">›</button>
+            </div>
+            <div style="display:grid; grid-template-columns:repeat(7,1fr); font-size:11px; color:#5E6168; text-align:center">
+              <span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span>
+            </div>
+            <div style="display:grid; grid-template-columns:repeat(7,1fr); gap:2px">
+              <sc-for list="{{ mini }}" as="m" hint-placeholder-count="35">
+                <button onClick="{{ m.tap }}" style="height:44px; border:none; border-radius:10px; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; background:{{ m.bg }}; color:{{ m.fg }}; font-size:13px; font-weight:500; box-shadow:{{ m.ring }}">
+                  {{ m.num }}
+                  <span style="display:flex; gap:2px; height:4px">
+                    <sc-for list="{{ m.dots }}" as="dc" hint-placeholder-count="0"><span style="width:4px; height:4px; border-radius:50%; background:{{ dc }}"></span></sc-for>
+                  </span>
+                </button>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+
+        <button onClick="{{ openFirst }}" style="text-align:left; border:1px solid #F5B83D; background:#231B0B; border-radius:16px; padding:16px; display:flex; flex-direction:column; gap:12px; cursor:pointer; color:inherit; transition:transform .12s" style-active="transform:scale(0.98)">
+          <span style="font-size:13px; color:#F2DDB0">Lo que tienes que grabar esta semana</span>
+          <span style="display:flex; align-items:flex-end; justify-content:space-between; gap:12px; width:100%">
+            <span style="display:flex; flex-direction:column; gap:6px">
+              <span style="display:flex; align-items:baseline; gap:8px">
+                <span style="font-size:40px; font-weight:700; color:#F5B83D; line-height:1; letter-spacing:-0.02em">{{ weekLeft }}</span>
+                <span style="font-size:19px; font-weight:600; color:#FFF4DE">{{ weekUnit }}</span>
+              </span>
+              <span style="font-size:13px; color:#FFF4DE">Entrega: <strong style="font-weight:600">{{ weekDeadline }}</strong></span>
+            </span>
+            <span style="height:40px; padding:0 14px; border-radius:10px; background:#F5B83D; color:#1A1205; font-size:14px; font-weight:600; display:flex; align-items:center; flex:none">Empezar</span>
+          </span>
+          <span style="display:flex; flex-direction:column; gap:6px; width:100%">
+            <span style="height:4px; border-radius:2px; background:rgba(245,184,61,0.18); overflow:hidden; display:block"><span style="display:block; height:100%; background:#F5B83D; border-radius:2px; transition:width .4s; width:{{ weekPct }}"></span></span>
+            <span style="font-size:12px; color:#C9B38A">{{ weekProgress }}</span>
+          </span>
+        </button>
+      </div>
+
+      <div ref="{{ stickyRef }}" style="position:sticky; top:0; z-index:2; background:#0B0B0D; border-bottom:1px solid rgba(255,255,255,0.06)">
+        <div style="padding:4px 10px 0; display:flex; align-items:center; justify-content:space-between">
+          <button onClick="{{ prevWeek }}" aria-label="Semana anterior" style="width:44px; height:40px; border:none; background:none; color:#B5B8BE; font-size:20px; cursor:pointer">‹</button>
+          <span style="font-size:13px; font-weight:500; color:{{ rangeColor }}">{{ rangeLabel }}</span>
+          <button onClick="{{ nextWeek }}" aria-label="Semana siguiente" style="width:44px; height:40px; border:none; background:none; color:#B5B8BE; font-size:20px; cursor:pointer">›</button>
+        </div>
+        <div onTouchStart="{{ swipeStart }}" onTouchEnd="{{ swipeEnd }}" style="padding:2px 12px 10px; display:grid; grid-template-columns:repeat(7,1fr); gap:4px">
+          <sc-for list="{{ strip }}" as="s" hint-placeholder-count="7">
+            <button onClick="{{ s.tap }}" style="height:62px; border-radius:12px; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; transition:background .2s, color .2s; background:{{ s.bg }}; color:{{ s.fg }}; border:1px solid {{ s.border }}">
+              <span style="font-size:11px; opacity:0.7">{{ s.letter }}</span>
+              <span style="font-size:16px; font-weight:600">{{ s.num }}</span>
+              <span style="display:flex; gap:2px; height:5px">
+                <sc-for list="{{ s.dots }}" as="dc" hint-placeholder-count="0"><span style="width:5px; height:5px; border-radius:50%; background:{{ dc }}"></span></sc-for>
+              </span>
+            </button>
+          </sc-for>
+        </div>
+        <div class="ns" style="display:flex; gap:8px; overflow-x:auto; padding:0 16px 12px; scrollbar-width:none">
+          <sc-for list="{{ chips }}" as="ch" hint-placeholder-count="5">
+            <button onClick="{{ ch.onClick }}" style="flex:none; display:flex; align-items:center; gap:7px; height:36px; padding:0 14px; border-radius:999px; cursor:pointer; font-size:13px; transition:background .2s, color .2s; font-weight:{{ ch.weight }}; background:{{ ch.bg }}; color:{{ ch.fg }}; border:1px solid {{ ch.border }}">
+              <span style="width:8px; height:8px; border-radius:50%; background:{{ ch.dot }}"></span>{{ ch.label }}
+            </button>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="padding:4px 0 40px; opacity:{{ listOpacity }}; transform:{{ listShift }}; transition:opacity .22s, transform .22s">
+        <sc-for list="{{ days }}" as="d" hint-placeholder-count="7">
+          <div data-day="{{ d.key }}" style="padding:14px 16px 4px; display:flex; flex-direction:column; gap:8px; background:{{ d.bg }}">
+            <div style="display:flex; align-items:baseline; gap:8px">
+              <span style="font-size:13px; font-weight:600; color:{{ d.labelColor }}; text-transform:capitalize">{{ d.label }}</span>
+              <sc-if value="{{ d.isToday }}" hint-placeholder-val="{{ false }}"><span style="font-size:11px; font-weight:600; padding:1px 7px; border-radius:999px; background:#E8E9EB; color:#0B0B0D">Hoy</span></sc-if>
+              <sc-if value="{{ d.empty }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px; color:#45484E">· Nada programado</span></sc-if>
+            </div>
+            <sc-for list="{{ d.items }}" as="c" hint-placeholder-count="0">
+              <div onClick="{{ c.open }}" style="display:flex; align-items:stretch; border-radius:12px; overflow:hidden; cursor:pointer; transition:opacity .2s, transform .12s; opacity:{{ c.opacity }}; background:{{ c.bg }}; border:1px solid {{ c.border }}; box-shadow:{{ c.shadow }}" style-active="transform:scale(0.98)">
+                <div style="width:3px; flex:none; background:{{ c.chColor }}"></div>
+                <div style="flex:1; min-width:0; padding:12px 8px 12px 13px; display:flex; flex-direction:column; gap:8px">
+                  <div style="display:flex; align-items:center; justify-content:space-between; gap:8px">
+                    <span style="font-size:12px; font-weight:600; color:{{ c.chColor }}">{{ c.chName }}</span>
+                    <sc-if value="{{ c.isClient }}" hint-placeholder-val="{{ false }}"><span style="width:20px; height:20px; border-radius:50%; background:#E9D3A8; color:#2A1F0C; font-size:8px; font-weight:700; display:flex; align-items:center; justify-content:center">MR</span></sc-if>
+                    <sc-if value="{{ c.isAgency }}" hint-placeholder-val="{{ false }}"><span style="width:20px; height:20px; border-radius:5px; background:#24262B; color:#8A8D93; font-family:'Geist Mono',monospace; font-size:8px; display:flex; align-items:center; justify-content:center">EN</span></sc-if>
+                  </div>
+                  <div style="font-size:16px; line-height:1.25; font-weight:{{ c.titleWeight }}; color:{{ c.titleColor }}; text-wrap:pretty">{{ c.title }}</div>
+                  <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap">
+                    <span style="font-size:12px; font-weight:600; padding:3px 9px; border-radius:999px; background:{{ c.pillBg }}; color:{{ c.pillFg }}">{{ c.pill }}</span>
+                    <span style="font-size:12px; color:{{ c.metaColor }}">{{ c.meta }}</span>
+                  </div>
+                </div>
+                <div style="display:flex; align-items:center; padding:0 12px 0 4px; color:#45484E; font-size:18px">›</div>
+              </div>
+            </sc-for>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <div onClick="{{ close }}" style="position:absolute; inset:0; z-index:5; background:rgba(0,0,0,0.6); transition:opacity .3s; opacity:{{ backdropOpacity }}; pointer-events:{{ backdropEvents }}"></div>
+
+    <div style="position:absolute; left:0; right:0; bottom:0; height:90%; z-index:6; background:#121315; border-radius:24px 24px 0 0; border-top:1px solid rgba(255,255,255,0.08); display:flex; flex-direction:column; overflow:hidden; transform:{{ sheetTransform }}; transition:{{ sheetTransition }}">
+      <div onPointerDown="{{ dragDown }}" onPointerMove="{{ dragMove }}" onPointerUp="{{ dragUp }}" onPointerCancel="{{ dragUp }}" style="flex:none; touch-action:none; cursor:grab; padding:10px 18px 14px; display:flex; flex-direction:column; gap:14px; border-bottom:1px solid rgba(255,255,255,0.05)">
+        <div style="width:40px; height:5px; border-radius:3px; background:#3A3D42; align-self:center"></div>
+        <div style="display:flex; gap:12px; align-items:flex-start">
+          <div style="width:4px; align-self:stretch; border-radius:2px; flex:none; background:{{ sel.chColor }}"></div>
+          <div style="flex:1; display:flex; flex-direction:column; gap:8px; min-width:0">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:8px">
+              <span style="font-size:12px; font-weight:600; color:{{ sel.chColor }}">{{ sel.chName }}</span>
+              <span style="font-size:12px; font-weight:600; padding:3px 10px; border-radius:999px; background:{{ sel.pillBg }}; color:{{ sel.pillFg }}">{{ sel.pill }}</span>
+            </div>
+            <h2 style="margin:0; font-size:22px; line-height:1.15; font-weight:600; letter-spacing:-0.015em; text-wrap:balance">{{ sel.title }}</h2>
+            <span style="font-size:13px; color:#B5B8BE">{{ sel.ownerText }} · {{ sel.dateVerb }} {{ sel.dateLabel }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="ns" style="flex:1; overflow-y:auto; overscroll-behavior:contain; padding:18px 18px 24px; display:flex; flex-direction:column; gap:20px; scrollbar-width:none">
+        <div style="display:flex; gap:8px">
+          <span style="font-size:12px; padding:6px 10px; border-radius:8px; background:#1B1C1F; color:#D4D6DA">{{ sel.formato }}</span>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:6px">
+          <div style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; color:#7C8087">Para qué sirve</div>
+          <p style="margin:0; font-size:15px; line-height:1.5; color:#D4D6DA; text-wrap:pretty">{{ sel.objetivo }}</p>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:6px; padding:14px; border-radius:12px; background:#18191C">
+          <div style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; color:#7C8087">Primera frase a cámara</div>
+          <p style="margin:0; font-size:16px; line-height:1.45; color:#FFF; font-weight:500; text-wrap:pretty">{{ sel.hook }}</p>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:4px">
+          <div style="display:flex; justify-content:space-between; align-items:baseline; padding-bottom:4px">
+            <div style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; color:#7C8087">Tomas que necesitamos</div>
+            <span style="font-size:12px; color:#B5B8BE; font-variant-numeric:tabular-nums">{{ sel.progress }}</span>
+          </div>
+          <sc-for list="{{ sel.tomas }}" as="t" hint-placeholder-count="4">
+            <div onClick="{{ t.toggle }}" style="display:flex; gap:12px; align-items:center; min-height:52px; padding:6px 10px; margin:0 -10px; border-radius:10px; cursor:pointer; transition:background .15s" style-active="background:#1B1C1F">
+              <span style="width:24px; height:24px; flex:none; border-radius:7px; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; color:#1A1205; transition:background .18s, border-color .18s, transform .18s; background:{{ t.boxBg }}; border:1.5px solid {{ t.boxBorder }}; transform:{{ t.scale }}">
+                <sc-if value="{{ t.done }}" hint-placeholder-val="{{ false }}">✓</sc-if>
+              </span>
+              <span style="font-size:15px; line-height:1.4; transition:color .18s; color:{{ t.color }}; text-decoration:{{ t.deco }}">{{ t.text }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:6px">
+          <div style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; color:#7C8087">Ten en cuenta</div>
+          <sc-for list="{{ sel.notas }}" as="n" hint-placeholder-count="3">
+            <div style="font-size:14px; line-height:1.45; color:#B5B8BE; display:flex; gap:8px"><span style="color:#5E6168">—</span><span>{{ n }}</span></div>
+          </sc-for>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:4px">
+          <sc-for list="{{ sel.steps }}" as="s" hint-placeholder-count="5">
+            <div style="display:flex; flex-direction:column; gap:5px">
+              <div style="height:3px; border-radius:2px; background:{{ s.bar }}"></div>
+              <span style="font-size:10px; color:{{ s.color }}; font-weight:{{ s.weight }}">{{ s.name }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <sc-if value="{{ sel.isAgency }}" hint-placeholder-val="{{ false }}">
+          <div style="font-size:14px; line-height:1.45; color:#9DA1A8; padding:14px; border-radius:12px; background:#18191C">No tienes que hacer nada con esta pieza. Te avisaremos si necesitamos algo.</div>
+        </sc-if>
+      </div>
+
+      <sc-if value="{{ sel.isGrabar }}" hint-placeholder-val="{{ true }}">
+        <div style="flex:none; padding:12px 18px 30px; display:flex; gap:10px; border-top:1px solid rgba(255,255,255,0.06); background:#121315">
+          <button onClick="{{ sel.markRecorded }}" style="flex:1; height:52px; border-radius:14px; border:1px solid rgba(255,255,255,0.14); background:transparent; color:#E8E9EB; font-size:15px; font-weight:500; cursor:pointer; transition:transform .12s" style-active="transform:scale(0.97)">Ya lo grabé</button>
+          <button style="flex:1.3; height:52px; border-radius:14px; border:none; background:#F5B83D; color:#1A1205; font-size:15px; font-weight:600; cursor:pointer; transition:transform .12s" style-active="transform:scale(0.97)">Subir material</button>
+        </div>
+      </sc-if>
+    </div>
+
+    <div style="position:absolute; left:16px; right:16px; bottom:28px; z-index:8; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:0 8px 0 16px; height:52px; border-radius:14px; background:#E8E9EB; color:#0B0B0D; font-size:14px; font-weight:500; transition:transform .3s cubic-bezier(.2,.8,.2,1), opacity .3s; transform:{{ toastTransform }}; opacity:{{ toastOpacity }}; pointer-events:{{ toastEvents }}">
+      <span>{{ toastText }}</span>
+      <button onClick="{{ undo }}" style="height:40px; padding:0 12px; border:none; border-radius:10px; background:transparent; color:#0B0B0D; font-size:14px; font-weight:700; cursor:pointer">Deshacer</button>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const CH={reel:{name:'Reels',color:'#FF4F8B'},story:{name:'Stories',color:'#2BD4F0'},lead:{name:'Lead Magnets',color:'#FF8B3D'},carrusel:{name:'Carruseles',color:'#A6E83A'}};
+const ST={grabar:{name:'Por grabar',color:'#F5B83D'},grabado:{name:'Grabado',color:'#6FA8FF'},edicion:{name:'En edición',color:'#B990FF'},listo:{name:'Listo',color:'#4FD98A'},publicado:{name:'Publicado',color:'#7C8087'}};
+const ORDER=['grabar','grabado','edicion','listo','publicado'];
+const TODAY=new Date(2026,9,1);
+const MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const MC=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+const DIAS=['dom','lun','mar','mié','jue','vie','sáb'];
+const DL=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+const LET=['D','L','M','X','J','V','S'];
+const ITEMS=[
+['2026-09-28','reel','Calentamiento de 5 minutos','publicado'],['2026-09-29','carrusel','Mitos del cardio en ayunas','publicado'],['2026-09-30','story','Encuesta: ¿qué entrenas hoy?','publicado'],
+['2026-10-01','reel','Sentadilla búlgara paso a paso','grabar'],['2026-10-01','story','Mi rutina de mañana','grabar'],['2026-10-02','reel','3 errores en peso muerto','grabar'],['2026-10-02','carrusel','Cuánta proteína necesitas','listo'],['2026-10-03','lead','Intro guía de proteína','grabar'],['2026-10-04','story','Detrás de cámaras','grabado'],
+['2026-10-05','reel','Rutina express de 15 minutos','edicion'],['2026-10-06','carrusel','5 snacks altos en proteína','edicion'],['2026-10-07','story','Día de pierna conmigo','grabado'],['2026-10-08','lead','Plan semanal descargable','listo'],['2026-10-09','reel','Respondo vuestras preguntas','grabado'],['2026-10-10','story','Preguntas y respuestas','edicion'],
+['2026-10-12','reel','Movilidad de cadera diaria','grabar'],['2026-10-13','carrusel','Cómo leer etiquetas','edicion'],['2026-10-14','story','Check-in de alumnos','grabar'],['2026-10-15','reel','Press banca sin dolor','grabar'],['2026-10-17','carrusel','Hábitos que sí funcionan','listo'],
+['2026-10-19','reel','Transformación de Laura','grabar'],['2026-10-20','lead','Reto de 7 días','grabar'],['2026-10-22','story','Mi comida post-entreno','grabar'],['2026-10-23','carrusel','Descanso y masa muscular','edicion'],
+['2026-10-26','reel','Abdominales sin crunch','grabar'],['2026-10-28','carrusel','Errores de principiante','edicion'],['2026-10-30','story','Halloween en el gym','grabar']
+].map((a,i)=>({id:'p'+i,date:a[0],ch:a[1],title:a[2],status:a[3]}));
+const BRIEFS={
+'Sentadilla búlgara paso a paso':{objetivo:'Enseñar la técnica correcta de un ejercicio que tus alumnos hacen mal. Buscamos que lo guarden para su día de pierna.',formato:'Vertical · 30–45 s',hook:'«Si te duele la rodilla en la búlgara, mira esto.»',tomas:['Plano general de perfil: 3 repeticiones lentas','Primer plano del pie delantero bien apoyado','El error: rodilla hacia dentro (exagéralo)','La corrección: 3 repeticiones bien hechas','Cierre a cámara: «Guárdalo para tu día de pierna»'],notas:['Luz natural, con la ventana de frente','Camiseta lisa, sin logos','Graba cada toma 2 o 3 veces; nosotros elegimos']},
+'Mi rutina de mañana':{objetivo:'Mostrar tu día a día para que tu audiencia te sienta cercano.',formato:'Vertical · 5 clips de 5 s',hook:'«Son las 6:30 y así empieza mi día.»',tomas:['Despertador y primer vaso de agua','Movilidad 2 minutos, cámara fija','Desayuno visto desde arriba','Selfie a cámara: «¿Y tú cómo empiezas?»'],notas:['No hace falta hablar en todos los clips','Sonido ambiente está bien']},
+'3 errores en peso muerto':{objetivo:'Vídeo educativo corto que genere comentarios y compartidos.',formato:'Vertical · 40–60 s',hook:'«El 90% hace mal el peso muerto. Estos son los 3 errores.»',tomas:['Intro a cámara con la barra detrás','Error 1: espalda redondeada (de perfil)','Error 2: barra lejos del cuerpo','Error 3: tirar con los brazos','Versión correcta completa, de perfil'],notas:['Peso ligero, la técnica es lo que importa','Cámara a la altura de la cadera']},
+'Intro guía de proteína':{objetivo:'Vídeo de bienvenida que verá quien descargue la guía gratuita.',formato:'Horizontal · 60–90 s',hook:'«Gracias por descargar la guía. Te cuento cómo sacarle partido.»',tomas:['Presentación: quién eres y para quién es la guía','Los 3 puntos clave de la guía','Invitación a escribirte por mensaje directo'],notas:['Fondo ordenado, sin espejo detrás','Mira a la lente, no a la pantalla']}};
+const GEN={reel:{formato:'Vertical · 30–45 s',tomas:['Intro a cámara','Demostración del ejercicio','Cierre con llamada a la acción']},story:{formato:'Vertical · 3–5 clips',tomas:['Clip de contexto','Clip principal','Pregunta a la audiencia']},lead:{formato:'Horizontal · 60–90 s',tomas:['Presentación a cámara','Contenido principal','Cierre']},carrusel:{formato:'Carrusel · 8 diapositivas',tomas:['Texto redactado por la agencia','Diseño de diapositivas','Revisión final']}};
+const brief=it=>BRIEFS[it.title]||{objetivo:'Pieza planificada por Estudio Norte para este mes.',formato:GEN[it.ch].formato,hook:it.ch==='carrusel'?'Sin grabación: lo diseña la agencia.':'Te enviaremos el guion completo antes de la fecha.',tomas:GEN[it.ch].tomas,notas:['El brief detallado llega 7 días antes']};
+const pd=s=>{const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)};
+const ky=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const wkStart=dt=>{const d=new Date(dt);d.setDate(d.getDate()-((d.getDay()+6)%7));d.setHours(0,0,0,0);return d};
+const addD=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
+const WS=wkStart(TODAY),WE=addD(WS,6);
+const inWeek=it=>{const d=pd(it.date);return d>=WS&&d<=WE};
+const lbl=d=>DIAS[d.getDay()]+' '+d.getDate()+' '+MC[d.getMonth()];
+const BYDATE={};ITEMS.forEach(it=>(BYDATE[it.date]=BYDATE[it.date]||[]).push(it));
+const WEEK_TOTAL=ITEMS.filter(it=>inWeek(it)&&it.status==='grabar');
+
+class Component extends DCLogic {
+  state={off:0,filter:'all',sel:'p3',open:false,monthOpen:false,miniM:null,over:{},checks:{},dragY:0,dragging:false,toast:null,fade:false,active:null};
+  scrollerRef=React.createRef(); stickyRef=React.createRef();
+  componentWillUnmount(){clearTimeout(this.tt);clearTimeout(this.ft)}
+  st(it){return this.state.over[it.id]||it.status}
+  goWeek(off,dayKey){
+    if(off===this.state.off){this.setState({active:dayKey||null});if(dayKey)this.scrollTo(dayKey);return}
+    this.setState({fade:true});
+    clearTimeout(this.ft);
+    this.ft=setTimeout(()=>{this.setState({off,fade:false,active:dayKey||null},()=>dayKey?this.scrollTo(dayKey):this.scrollTop())},160);
+  }
+  scrollTop(){const sc=this.scrollerRef.current,h=this.stickyRef.current;if(sc&&h&&sc.scrollTop>h.offsetTop)sc.scrollTo({top:h.offsetTop,behavior:'smooth'})}
+  scrollTo(k){const sc=this.scrollerRef.current,h=this.stickyRef.current;if(!sc)return;const el=sc.querySelector('[data-day="'+k+'"]');if(el)sc.scrollTo({top:el.offsetTop-(h?h.offsetHeight:0),behavior:'smooth'})}
+  openItem(id){this.setState({sel:id,open:true,dragY:0})}
+  renderVals(){
+    const s=this.state,f=s.filter,ws=addD(WS,7*s.off),mid=addD(ws,3);
+    const isCW=s.off===0;
+    const days=[],strip=[];
+    for(let i=0;i<7;i++){
+      const dd=addD(ws,i),k=ky(dd),isToday=k===ky(TODAY),list=BYDATE[k]||[];
+      const items=list.map(it=>{
+        const status=this.st(it),now=status==='grabar'&&inWeek(it),later=status==='grabar'&&!inWeek(it),S=ST[status];
+        const b=brief(it),ck=s.checks[it.id]||{},n=Object.values(ck).filter(Boolean).length;
+        return{title:it.title,chName:CH[it.ch].name,chColor:CH[it.ch].color,pill:S.name,isClient:status==='grabar',isAgency:status!=='grabar',
+          open:()=>this.openItem(it.id),opacity:f!=='all'&&f!==it.ch?0.25:1,
+          bg:now?'#2A2110':later?'#19160F':'#141518',
+          border:now?'#F5B83D':later?'rgba(245,184,61,0.4)':'rgba(255,255,255,0.05)',
+          shadow:now?'0 0 0 3px rgba(245,184,61,0.12)':'none',
+          titleColor:now?'#FFF4DE':later?'#E6DFD0':status==='publicado'?'#62666D':'#A9ACB2',titleWeight:status==='grabar'?600:500,
+          pillBg:now?'#F5B83D':status==='publicado'?'rgba(255,255,255,0.05)':S.color+'1F',pillFg:now?'#1A1205':S.color,
+          meta:status==='grabar'?(n+' de '+b.tomas.length+' tomas'):'',metaColor:now?'#E2C78F':'#7C8087'};
+      });
+      days.push({key:k,label:DL[dd.getDay()]+' '+dd.getDate(),isToday,items,empty:!items.length,
+        bg:s.active===k?'rgba(255,255,255,0.025)':'transparent',
+        labelColor:items.length?(isToday?'#FFFFFF':'#C9CCD1'):'#45484E'});
+      const dots=[...new Set(list.map(it=>CH[it.ch].color))].slice(0,3);
+      const hasNow=list.some(it=>this.st(it)==='grabar'&&inWeek(it));
+      const act=isToday;
+      strip.push({letter:LET[dd.getDay()],num:dd.getDate(),dots,tap:()=>this.goWeek(s.off,k),
+        bg:act?'#E8E9EB':hasNow?'#231B0B':'transparent',fg:act?'#0B0B0D':dd.getMonth()===mid.getMonth()?'#E8E9EB':'#5E6168',
+        border:hasNow&&!act?'rgba(245,184,61,0.6)':s.active===k&&!act?'rgba(255,255,255,0.3)':'transparent'});
+    }
+    const mm=s.miniM||{y:mid.getFullYear(),m:mid.getMonth()};
+    const mf=new Date(mm.y,mm.m,1),mstart=wkStart(mf),mlast=new Date(mm.y,mm.m+1,0);
+    const mini=[];
+    for(let d=new Date(mstart);d<=mlast||((d.getDay()+6)%7)!==0;d=addD(d,1)){
+      const dd=new Date(d),k=ky(dd),list=BYDATE[k]||[],inM=dd.getMonth()===mm.m,isToday=k===ky(TODAY),inShown=dd>=ws&&dd<=addD(ws,6);
+      const hasG=list.some(it=>this.st(it)==='grabar');
+      mini.push({num:dd.getDate(),dots:inM?[...new Set(list.map(it=>CH[it.ch].color))].slice(0,3):[],
+        bg:isToday?'#E8E9EB':inShown?'#1B1C1F':'transparent',fg:isToday?'#0B0B0D':inM?'#C9CCD1':'#3A3D42',
+        ring:hasG&&inM&&!isToday?'inset 0 0 0 1px rgba(245,184,61,0.55)':'none',
+        tap:()=>{const off=Math.round((wkStart(dd)-WS)/(7*864e5));this.setState({monthOpen:false,miniM:null});this.goWeek(off,k)}});
+    }
+    const chips=[['all','Todo','#E8E9EB'],...Object.entries(CH).map(([k,v])=>[k,v.name,v.color])].map(([k,label,color])=>{const a=f===k;return{label,onClick:()=>this.setState({filter:k}),
+      bg:a?color:'transparent',fg:a?'#0B0B0D':'#C9CCD1',border:a?color:'rgba(255,255,255,0.12)',dot:a?'#0B0B0D':color,weight:a?600:500}});
+    const left=ITEMS.filter(it=>inWeek(it)&&this.st(it)==='grabar');
+    const done=WEEK_TOTAL.length-left.length;
+    const lastD=WEEK_TOTAL.map(it=>pd(it.date)).sort((a,b)=>b-a)[0];
+    const it=ITEMS.find(x=>x.id===s.sel)||ITEMS[3],status=this.st(it),S=ST[status],b=brief(it),isG=status==='grabar';
+    const ck=s.checks[it.id]||{},si=ORDER.indexOf(status);
+    const tomas=b.tomas.map((text,i)=>{const dn=isG?!!ck[i]:true;return{text,done:dn,
+      toggle:()=>isG&&this.setState(p=>({checks:{...p.checks,[it.id]:{...(p.checks[it.id]||{}),[i]:!(p.checks[it.id]||{})[i]}}})),
+      boxBg:dn?(isG?'#F5B83D':'#3A3D42'):'transparent',boxBorder:dn?(isG?'#F5B83D':'#3A3D42'):'#5E6168',scale:dn&&isG?'scale(1.06)':'scale(1)',
+      color:dn?'#7C8087':'#E8E9EB',deco:dn&&isG?'line-through':'none'}});
+    const nDone=tomas.filter(t=>t.done).length;
+    const sel={title:it.title,chName:CH[it.ch].name,chColor:CH[it.ch].color,pill:S.name,
+      pillBg:isG?'#F5B83D':S.color+'1F',pillFg:isG?'#1A1205':S.color,isGrabar:isG,isAgency:!isG,
+      ownerText:isG?'Te toca a ti':'Lo tiene Estudio Norte',dateVerb:isG?'antes del':'se publica el',dateLabel:lbl(pd(it.date)),
+      formato:b.formato,objetivo:b.objetivo,hook:b.hook,tomas,notas:b.notas,progress:nDone+' de '+tomas.length,
+      steps:ORDER.map((k,i)=>({name:ST[k].name,bar:i<si?'#3A3D42':i===si?ST[k].color:'#1F2024',color:i===si?ST[k].color:'#5E6168',weight:i===si?600:500})),
+      markRecorded:()=>{const id=it.id;this.setState(p=>({over:{...p.over,[id]:'grabado'},open:false,toast:{id,text:'«'+it.title+'» marcado como grabado'}}));clearTimeout(this.tt);this.tt=setTimeout(()=>this.setState({toast:null}),3500)}};
+    const shift=n=>()=>this.goWeek(s.off+n);
+    const mshift=n=>()=>this.setState(p=>{const d=new Date(mm.y,mm.m+n,1);return{miniM:{y:d.getFullYear(),m:d.getMonth()}}});
+    return{
+      scrollerRef:this.scrollerRef,stickyRef:this.stickyRef,
+      monthLabel:MESES[mid.getMonth()],chevronRot:s.monthOpen?'rotate(180deg)':'rotate(0deg)',
+      toggleMonth:()=>this.setState(p=>({monthOpen:!p.monthOpen,miniM:null})),monthMax:s.monthOpen?'380px':'0px',monthOpacity:s.monthOpen?1:0,
+      prevMonth:mshift(-1),nextMonth:mshift(1),mini,
+      weekLeft:left.length,weekUnit:left.length===1?'pieza':'piezas',weekDeadline:'antes del '+lbl(lastD)+', 20:00',
+      weekPct:Math.round(done/WEEK_TOTAL.length*100)+'%',weekProgress:done?done+' de '+WEEK_TOTAL.length+' grabadas':'Aún no has grabado ninguna',
+      openFirst:()=>{if(left[0])this.openItem(left[0].id);if(s.off!==0)this.goWeek(0)},
+      rangeLabel:(isCW?'Esta semana · ':'')+ws.getDate()+' '+MC[ws.getMonth()]+' – '+addD(ws,6).getDate()+' '+MC[addD(ws,6).getMonth()],
+      rangeColor:isCW?'#F2DDB0':'#B5B8BE',
+      prevWeek:shift(-1),nextWeek:shift(1),strip,chips,days,
+      swipeStart:e=>{this.sx=e.touches[0].clientX},
+      swipeEnd:e=>{const dx=e.changedTouches[0].clientX-this.sx;if(Math.abs(dx)>50)this.goWeek(s.off+(dx<0?1:-1))},
+      listOpacity:s.fade?0:1,listShift:s.fade?'translateY(6px)':'translateY(0)',
+      close:()=>this.setState({open:false}),backdropOpacity:s.open?1:0,backdropEvents:s.open?'auto':'none',
+      sheetTransform:s.open?'translateY('+s.dragY+'px)':'translateY(105%)',
+      sheetTransition:s.dragging?'none':'transform .36s cubic-bezier(.2,.85,.25,1)',
+      dragDown:e=>{this.y0=e.clientY;e.currentTarget.setPointerCapture&&e.currentTarget.setPointerCapture(e.pointerId);this.setState({dragging:true})},
+      dragMove:e=>{if(this.state.dragging)this.setState({dragY:Math.max(0,e.clientY-this.y0)})},
+      dragUp:()=>{if(!this.state.dragging)return;this.setState(p=>p.dragY>110?{dragging:false,open:false,dragY:0}:{dragging:false,dragY:0})},
+      sel,
+      toastText:s.toast?s.toast.text:'',toastTransform:s.toast?'translateY(0)':'translateY(140%)',toastOpacity:s.toast?1:0,toastEvents:s.toast?'auto':'none',
+      undo:()=>{const t=s.toast;if(!t)return;clearTimeout(this.tt);this.setState(p=>{const o={...p.over};delete o[t.id];return{over:o,toast:null}})}
+    };
+  }
+}
+</script>
+</body>
+</html>
