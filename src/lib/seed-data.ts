@@ -4,7 +4,10 @@
 // date is used as record_due_at, as the handoff asks.
 // Used by the in-memory demo store and by scripts/gen-seed.ts (supabase/seed.sql).
 
+import { EDIT_DAYS, GENERIC } from "./constants";
 import type { Channel, Status } from "./types";
+
+export { EDIT_DAYS, GENERIC };
 
 export interface SeedPiece {
   key: string;
@@ -40,15 +43,6 @@ export interface SeedReference {
 
 export const SEED_AGENCY = { name: "Estudio Norte", initials: "EN" };
 export const SEED_CLIENT = { name: "Marco Ruiz", initials: "MR", phone: "+52 55 0000 0000", tz: "America/Mexico_City" };
-
-export const EDIT_DAYS: Record<Channel, number> = { reel: 3, story: 1, lead: 4, carrusel: 3 };
-
-export const GENERIC: Record<Channel, { format: string; shots: string[] }> = {
-  reel: { format: "Vertical · 30–45 s", shots: ["Intro a cámara", "Demostración del ejercicio", "Cierre con llamada a la acción"] },
-  story: { format: "Vertical · 3–5 clips", shots: ["Clip de contexto", "Clip principal", "Pregunta a la audiencia"] },
-  lead: { format: "Horizontal · 60–90 s", shots: ["Presentación a cámara", "Contenido principal", "Cierre"] },
-  carrusel: { format: "Carrusel · 8 diapositivas", shots: ["Texto redactado por la agencia", "Diseño de diapositivas", "Revisión final"] },
-};
 
 const VERANO_BLOCKS: SeedBlock[] = [
   { label: "Gancho", duration: "5 s", lines: ["¿Sigues sin poder quitarte la playera porque te da pena enseñar tu abdomen, “si es que tienes”?"], note: "Mira directo a cámara. Pausa corta después de la pregunta." },

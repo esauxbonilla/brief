@@ -32,3 +32,13 @@ export const ALL_STATUSES: Status[] = ["borrador", "grabar", "rehacer", "grabado
 export const AMBER = "#F5B83D";
 export const RED = "#FF5C5C";
 export const GREEN = "#4FD98A";
+
+/** Default editing days per channel (record_due_at = publish − edit_days − buffer). */
+export const EDIT_DAYS: Record<Channel, number> = { reel: 3, story: 1, lead: 4, carrusel: 3 };
+
+export const GENERIC: Record<Channel, { format: string; shots: string[] }> = {
+  reel: { format: "Vertical · 30–45 s", shots: ["Intro a cámara", "Demostración del ejercicio", "Cierre con llamada a la acción"] },
+  story: { format: "Vertical · 3–5 clips", shots: ["Clip de contexto", "Clip principal", "Pregunta a la audiencia"] },
+  lead: { format: "Horizontal · 60–90 s", shots: ["Presentación a cámara", "Contenido principal", "Cierre"] },
+  carrusel: { format: "Carrusel · 8 diapositivas", shots: ["Texto redactado por la agencia", "Diseño de diapositivas", "Revisión final"] },
+};

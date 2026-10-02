@@ -11,6 +11,19 @@ function sortChildren(p: PieceFull): PieceFull {
   return p;
 }
 
+const isStoragePath = (u: string | null): u is string => !!u && !/^(https?:|data:|\/)/.test(u);
+
+/** Photos the client sent live in the private bucket: swap paths for signed URLs. */
+async function signReferences(rows: PieceFull[]) {
+  const paths = rows.flatMap((p) => p.references.map((r) => r.uploaded_url)).filter(isStoragePath);
+  if (!paths.length) return rows;
+  const sb = await supabaseServer();
+  const { data } = await sb.storage.from("material").createSignedUrls(paths, 60 * 60);
+  const map = new Map((data ?? []).map((d) => [d.path, d.signedUrl]));
+  for (const p of rows) for (const r of p.references) if (isStoragePath(r.uploaded_url)) r.uploaded_url = map.get(r.uploaded_url) ?? null;
+  return rows;
+}
+
 // No generated DB types yet: rows are typed by the Repo interface.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function check(res: { data: unknown; error: { message: string } | null }): any {
@@ -47,7 +60,7 @@ export const supabaseRepo: Repo = {
       await sb.from("pieces").select(PIECE_SELECT).eq("client_id", clientId).not("brief_sent_at", "is", null)
         .not("status", "in", "(borrador,cancelado)").order("record_due_at"),
     ) as PieceFull[];
-    return rows.map(sortChildren);
+    return signReferences(rows.map(sortChildren));
   },
   async setRecorded(pieceId, recorded) {
     const sb = await supabaseServer();
@@ -79,12 +92,12 @@ export const supabaseRepo: Repo = {
   async agencyPieces(clientId) {
     const sb = await supabaseServer();
     const rows = check(await sb.from("pieces").select(PIECE_SELECT).eq("client_id", clientId).order("record_due_at")) as PieceFull[];
-    return rows.map(sortChildren);
+    return signReferences(rows.map(sortChildren));
   },
   async agencyPiece(id) {
     const sb = await supabaseServer();
     const row = check(await sb.from("pieces").select(PIECE_SELECT).eq("id", id).maybeSingle()) as PieceFull | null;
-    return row ? sortChildren(row) : null;
+    return row ? (await signReferences([sortChildren(row)]))[0] : null;
   },
   async savePiece(input) {
     const sb = await supabaseServer();

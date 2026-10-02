@@ -43,6 +43,7 @@
   --color-violet: #b990ff;
 }
 
+@layer base {
 html {
   color-scheme: dark;
 }
@@ -79,6 +80,7 @@ a:hover {
 }
 .no-scrollbar::-webkit-scrollbar {
   display: none;
+}
 }
 
 /* Títulos: nunca truncar ni partir palabras. */
