@@ -1,10 +1,13 @@
 "use client";
 
-import { useActionState, useMemo, useState, type ReactNode } from "react";
+import { useActionState, useMemo, useRef, useState, type ReactNode } from "react";
 import { CHANNEL_KEYS, CHANNELS, EDIT_DAYS, GENERIC } from "@/lib/constants";
 import { addDays, DEFAULT_BUFFER_DAYS, dayKey } from "@/lib/dates";
 import { displayStatus } from "@/lib/pieces";
+import { firstUrl, siteName, withoutUrls } from "@/lib/links";
 import { parseScript } from "@/lib/script-parse";
+import { supabaseBrowser } from "@/lib/supabase/browser";
+import { isDemo } from "@/lib/supabase/config";
 import type { Channel, PieceFull } from "@/lib/types";
 import * as A from "../actions";
 import { Btn, ChannelTag, ReceivedActions, StatusPill, useAct } from "../ui";
@@ -168,42 +171,110 @@ export function ScriptEditor({ piece }: { piece: PieceFull }) {
   );
 }
 
+/** Screenshots go straight from the browser to Storage, shrunk to ~100 KB WebP. */
+async function shrink(file: File): Promise<Blob> {
+  const bmp = await createImageBitmap(file);
+  const scale = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(bmp.width * scale);
+  canvas.height = Math.round(bmp.height * scale);
+  canvas.getContext("2d")!.drawImage(bmp, 0, 0, canvas.width, canvas.height);
+  bmp.close();
+  return new Promise((ok, fail) => canvas.toBlob((b) => (b ? ok(b) : fail(new Error("No se pudo procesar la imagen"))), "image/webp", 0.82));
+}
+
+async function uploadImage(piece: PieceFull, file: File): Promise<string> {
+  const blob = await shrink(file);
+  if (isDemo) {
+    return new Promise((ok) => { const r = new FileReader(); r.onload = () => ok(String(r.result)); r.readAsDataURL(blob); });
+  }
+  const sb = supabaseBrowser();
+  const path = `${piece.client_id}/${piece.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.webp`;
+  const { error } = await sb.storage.from("referencias").upload(path, blob, { contentType: "image/webp" });
+  if (error) throw new Error(`No se pudo subir la imagen: ${error.message}`);
+  return sb.storage.from("referencias").getPublicUrl(path).data.publicUrl;
+}
+
+const imagesOf = (list: FileList | null | undefined) => Array.from(list ?? []).filter((f) => f.type.startsWith("image/"));
+
 export function References({ piece }: { piece: PieceFull }) {
   const { pending, run } = useAct();
   const [requested, setRequested] = useState(false);
+  const [images, setImages] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<string[]>([]);
+  const form = useRef<HTMLFormElement>(null);
+  const picker = useRef<HTMLInputElement>(null);
   const blockNo = (id: string | null) => {
     const i = piece.blocks.findIndex((b) => b.id === id);
     return i >= 0 ? `Bloque ${i + 1}` : null;
   };
+  const addImages = (files: File[]) => {
+    if (!files.length) return;
+    setImages((l) => [...l, ...files]);
+    setPreviews((l) => [...l, ...files.map((f) => URL.createObjectURL(f))]);
+  };
+  const clearImages = () => {
+    previews.forEach((u) => URL.revokeObjectURL(u));
+    setImages([]);
+    setPreviews([]);
+  };
+  const submit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    run(async () => {
+      if (requested || !images.length) {
+        await A.addReference(fd);
+      } else {
+        for (const f of images) {
+          const one = new FormData(form.current!);
+          one.set("image_url", await uploadImage(piece, f));
+          await A.addReference(one);
+        }
+      }
+      form.current?.reset();
+      setRequested(false);
+      clearImages();
+    });
+  };
+
   return (
     <div className="flex flex-col gap-3">
-      {piece.references.map((r) => (
-        <div key={r.id} className="flex items-center gap-3 rounded-xl bg-surface-2 p-2.5">
-          {r.image_url || r.uploaded_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={r.uploaded_url ?? r.image_url!} alt="" className="h-16 w-10 flex-none rounded-md object-cover" />
-          ) : (
-            <span className="flex h-16 w-10 flex-none items-center justify-center rounded-md border border-dashed text-[10px] text-text-3" style={{ borderColor: "rgba(245,184,61,0.5)" }}>foto</span>
-          )}
-          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-            <span className="text-sm font-semibold">{r.title}</span>
-            <span className="text-xs text-text-3">
-              {r.requested_from_client ? (r.uploaded_url ? "El cliente ya la envió ✓" : "Pedida al cliente · pendiente") : "De la agencia"}
-              {blockNo(r.block_id) && ` · ${blockNo(r.block_id)}`}
-              {r.note && ` · ${r.note}`}
-            </span>
+      {piece.references.map((r) => {
+        const img = r.uploaded_url ?? r.image_url;
+        const url = firstUrl(r.note, r.title);
+        return (
+          <div key={r.id} className="flex items-center gap-3 rounded-xl bg-surface-2 p-2.5">
+            {img ? (
+              <a href={img} target="_blank" rel="noopener noreferrer" className="flex-none" aria-label="Ver imagen">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={img} alt="" className="h-16 w-10 rounded-md object-cover" />
+              </a>
+            ) : (
+              <span className="flex h-16 w-10 flex-none items-center justify-center rounded-md border border-dashed text-[10px] text-text-3" style={{ borderColor: "rgba(245,184,61,0.5)" }}>{url ? "link" : "foto"}</span>
+            )}
+            <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+              <span className="text-sm font-semibold">{withoutUrls(r.title) || "Referencia"}</span>
+              <span className="text-xs text-text-3">
+                {r.requested_from_client ? (r.uploaded_url ? "El cliente ya la envió ✓" : "Pedida al cliente · pendiente") : "De la agencia"}
+                {blockNo(r.block_id) && ` · ${blockNo(r.block_id)}`}
+                {withoutUrls(r.note) && ` · ${withoutUrls(r.note)}`}
+              </span>
+              {url && <a href={url} target="_blank" rel="noopener noreferrer" className="text-xs">Abrir en {siteName(url)} ↗</a>}
+            </div>
+            <Btn kind="danger" disabled={pending} onClick={() => confirm("¿Borrar la referencia?") && run(() => A.deleteReference(piece.id, r.id))}>Borrar</Btn>
           </div>
-          <Btn kind="danger" disabled={pending} onClick={() => confirm("¿Borrar la referencia?") && run(() => A.deleteReference(piece.id, r.id))}>Borrar</Btn>
-        </div>
-      ))}
+        );
+      })}
       <form
+        ref={form}
+        onSubmit={submit}
+        onPaste={(e) => !requested && addImages(imagesOf(e.clipboardData?.files))}
         className="flex flex-col gap-3 rounded-xl border p-3.5"
         style={{ borderColor: "rgba(255,255,255,0.08)" }}
-        action={(fd) => run(() => A.addReference(fd))}
       >
         <input type="hidden" name="piece_id" value={piece.id} />
         <div className="grid gap-3 sm:grid-cols-2">
-          <F label="Título"><input name="title" required className={`${field} h-10`} style={fieldStyle} placeholder={requested ? "Foto de Ramiro hace 3 meses" : "Formato pantalla dividida"} /></F>
+          <F label="Título"><input name="title" className={`${field} h-10`} style={fieldStyle} placeholder={requested ? "Foto de Ramiro hace 3 meses" : "Formato pantalla dividida"} /></F>
           <F label="Bloque del guion">
             <select name="block_id" className={`${field} h-10`} style={fieldStyle} defaultValue="">
               <option value="">— Ninguno —</option>
@@ -211,15 +282,37 @@ export function References({ piece }: { piece: PieceFull }) {
             </select>
           </F>
         </div>
-        <F label="Nota"><input name="note" className={`${field} h-10`} style={fieldStyle} /></F>
+        <F label="Link o nota"><input name="note" className={`${field} h-10`} style={fieldStyle} placeholder="https://www.instagram.com/p/…" /></F>
         <label className="flex items-center gap-2 text-[13px] text-text-2c">
           <input type="checkbox" name="requested" checked={requested} onChange={(e) => setRequested(e.target.checked)} className="size-4 accent-amber" />
           Pedirle este material al cliente (él sube la foto)
         </label>
         {!requested && (
-          <F label="Imagen"><input type="file" name="image" accept="image/*" className="text-[13px] text-text-2c" /></F>
+          <div
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => { e.preventDefault(); addImages(imagesOf(e.dataTransfer.files)); }}
+            className="flex flex-col gap-2.5 rounded-[10px] border border-dashed p-3"
+            style={{ borderColor: "rgba(255,255,255,0.18)" }}
+          >
+            <input ref={picker} type="file" accept="image/*" multiple hidden onChange={(e) => { addImages(imagesOf(e.target.files)); e.target.value = ""; }} />
+            <div className="flex flex-wrap items-center gap-2 text-[13px] text-text-3">
+              <Btn onClick={() => picker.current?.click()}>Elegir imágenes</Btn>
+              <span>o pega (⌘V) / arrastra screenshots aquí</span>
+            </div>
+            {previews.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                {previews.map((u) => <img key={u} src={u} alt="" className="h-16 w-10 rounded-md object-cover" />)}
+                <button type="button" onClick={clearImages} className="cursor-pointer border-none bg-transparent text-xs text-text-3 hover:text-white">Quitar</button>
+              </div>
+            )}
+          </div>
         )}
-        <div><Btn type="submit" kind="primary" disabled={pending}>Añadir referencia</Btn></div>
+        <div>
+          <Btn type="submit" kind="primary" disabled={pending}>
+            {pending ? "Subiendo…" : images.length > 1 && !requested ? `Añadir ${images.length} referencias` : "Añadir referencia"}
+          </Btn>
+        </div>
       </form>
     </div>
   );

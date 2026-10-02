@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { firstUrl, siteName, withoutUrls } from "@/lib/links";
 import { CHANNELS } from "@/lib/constants";
 import { dayKey, dayMonth, hhmm, shortLabel, urgency } from "@/lib/dates";
 import { cardStyle, isClientsTurn, isPending } from "@/lib/pieces";
@@ -347,24 +348,35 @@ export function RefsTab({ p, onOpenRef }: { p: PieceFull; onOpenRef: (r: PieceRe
       {fromAgency.length > 0 && (
         <div className="flex flex-col gap-2.5">
           <SectionLabel>De la agencia</SectionLabel>
-          {fromAgency.map((r) => (
-            <button
-              key={r.id}
-              onClick={() => r.image_url && onOpenRef(r)}
-              className="press flex cursor-pointer flex-col overflow-hidden rounded-[14px] border bg-surface-2 p-0 text-left text-inherit"
-              style={{ borderColor: "rgba(255,255,255,0.08)" }}
-            >
-              {r.image_url && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={r.image_url} alt={r.title} className="block h-[300px] w-full object-cover object-top" />
-              )}
-              <span className="flex flex-col gap-1 px-3.5 pt-3 pb-3.5">
-                <span className="text-sm font-semibold">{r.title}</span>
-                {r.note && <span className="text-[13px] leading-[1.4] text-[#9DA1A8]">{r.note}</span>}
-                {blockNo(r) && <span className="mt-1 text-xs text-blue">Se usa en el bloque {blockNo(r)}</span>}
-              </span>
-            </button>
-          ))}
+          {fromAgency.map((r) => {
+            const url = firstUrl(r.note, r.title);
+            const note = withoutUrls(r.note);
+            return (
+              <div key={r.id} className="flex flex-col overflow-hidden rounded-[14px] border bg-surface-2" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
+                {r.image_url && (
+                  <button onClick={() => onOpenRef(r)} aria-label={`Ver ${r.title} en grande`} className="press block cursor-zoom-in border-none bg-transparent p-0">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={r.image_url} alt={r.title} className="block h-[300px] w-full object-cover object-top" />
+                  </button>
+                )}
+                <div className="flex flex-col gap-1 px-3.5 pt-3 pb-3.5">
+                  <span className="text-sm font-semibold">{withoutUrls(r.title) || "Referencia"}</span>
+                  {note && <span className="text-[13px] leading-[1.4] text-[#9DA1A8]">{note}</span>}
+                  {blockNo(r) && <span className="mt-1 text-xs text-blue">Se usa en el bloque {blockNo(r)}</span>}
+                  {url && (
+                    <a
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="press mt-2 flex h-11 items-center justify-center gap-1.5 rounded-[10px] bg-white/[0.07] text-sm font-semibold text-text no-underline hover:bg-white/10 hover:text-text"
+                    >
+                      Abrir en {siteName(url)} ↗
+                    </a>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

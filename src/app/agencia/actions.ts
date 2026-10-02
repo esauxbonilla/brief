@@ -6,8 +6,6 @@ import { repo } from "@/lib/data";
 import { EDIT_DAYS } from "@/lib/constants";
 import { addDays, computeRecordDue, DEADLINE_TIME, DEFAULT_BUFFER_DAYS, dayIndex, dayKey, hhmm, shortLabel, zonedTime } from "@/lib/dates";
 import { parseScript } from "@/lib/script-parse";
-import { isDemo } from "@/lib/supabase/config";
-import { supabaseServer } from "@/lib/supabase/server";
 import type { Channel, PieceFull } from "@/lib/types";
 
 // Agency actions. RLS restricts writes to the agency's own clients; we also
@@ -201,23 +199,10 @@ export async function saveScript(id: string, raw: string) {
 export async function addReference(form: FormData) {
   const pieceId = String(form.get("piece_id"));
   const p = await ownPiece(pieceId);
-  const title = String(form.get("title") ?? "").trim();
-  if (!title) throw new Error("Falta el título de la referencia");
+  const title = String(form.get("title") ?? "").trim() || "Referencia";
   const requested = form.get("requested") === "on";
-  let image_url = text(form.get("image_url"));
-  const file = form.get("image");
-  if (!requested && file instanceof File && file.size > 0) {
-    if (!file.type.startsWith("image/")) throw new Error("La referencia debe ser una imagen");
-    if (isDemo) {
-      image_url = `data:${file.type};base64,${Buffer.from(await file.arrayBuffer()).toString("base64")}`;
-    } else {
-      const sb = await supabaseServer();
-      const path = `${p.client_id}/${p.id}/${Date.now()}-${file.name.replace(/[^\w.-]+/g, "_")}`;
-      const { error } = await sb.storage.from("referencias").upload(path, file, { contentType: file.type });
-      if (error) throw new Error(error.message);
-      image_url = sb.storage.from("referencias").getPublicUrl(path).data.publicUrl;
-    }
-  }
+  // Images are uploaded from the browser (see References in pieza/editor.tsx).
+  const image_url = text(form.get("image_url"));
   await repo.addReference({
     piece_id: pieceId,
     block_id: text(form.get("block_id")),
