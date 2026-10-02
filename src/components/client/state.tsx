@@ -188,7 +188,8 @@ export function ClientState({
         try {
           select(await agencyActions.quickCreate(client.id, day, channel));
         } catch (e) {
-          fail(e);
+          console.error(e);
+          showToast(channel === "extra" ? "No se pudo crear. ¿Ya corriste en Supabase el SQL de Extra?" : "No se pudo crear la pieza. Intenta de nuevo.");
         }
       }),
       move: (id, day) => {
@@ -208,7 +209,7 @@ export function ClientState({
         });
       },
     };
-  }, [agencyPanel, busy, client.id, client.tz, pieces, patch, fail]);
+  }, [agencyPanel, busy, client.id, client.tz, pieces, patch, fail, showToast]);
 
   const value = useMemo<Ctx>(() => ({
     client, agency, tz: client.tz, now, pieces, base, readOnly, blocked, edit, byId, filter, setFilter, selectedId, select,

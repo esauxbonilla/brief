@@ -46,6 +46,15 @@ export function Btn({
   );
 }
 
+/** In production Next hides server error messages; say something useful instead. */
+export function friendlyError(e: unknown): string {
+  const msg = e instanceof Error ? e.message : "";
+  if (!msg || /Server Components render|digest|react\.dev\/errors/i.test(msg)) {
+    return "Algo falló al guardar. Si acabas de agregar algo nuevo (Drive, Extra), revisa que hayas corrido el SQL en Supabase.";
+  }
+  return msg;
+}
+
 /** Runs a server action with a pending state and an error alert. */
 export function useAct() {
   const [pending, start] = useTransition();
@@ -56,7 +65,7 @@ export function useAct() {
         await fn();
         router.refresh();
       } catch (e) {
-        alert(e instanceof Error ? e.message : "Algo salió mal");
+        alert(friendlyError(e));
       }
     });
   return { pending, run };
@@ -240,15 +249,55 @@ export function ClientBoard({ pieces, tz, serverNow, onOpen }: { pieces: PieceFu
   );
 }
 
-export function SignOutButton() {
+/** Popover anchored under its trigger; closes on outside tap. */
+export function Popover({ trigger, label, align = "right", children }: {
+  trigger: ReactNode;
+  label: string;
+  align?: "left" | "right";
+  children: (close: () => void) => ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative">
+      <button type="button" aria-label={label} aria-expanded={open} onClick={() => setOpen((o) => !o)} className="flex cursor-pointer items-center border-none bg-transparent p-0 text-inherit">
+        {trigger}
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-[40]" onClick={() => setOpen(false)} />
+          <div
+            className={`absolute top-full z-[41] mt-2 flex min-w-[200px] flex-col gap-1 rounded-xl border bg-surface-2 p-2 shadow-lg ${align === "right" ? "right-0" : "left-0"}`}
+            style={{ borderColor: "rgba(255,255,255,0.1)" }}
+          >
+            {children(() => setOpen(false))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+/** Round user icon; tap for "Cerrar sesión". */
+export function UserMenu() {
   const [pending, start] = useTransition();
   return (
-    <button
-      disabled={pending}
-      onClick={() => start(() => signOut())}
-      className="cursor-pointer border-none bg-transparent p-0 text-[13px] text-text-3 hover:text-white disabled:opacity-60"
+    <Popover
+      label="Tu cuenta"
+      trigger={
+        <span className="flex size-8 items-center justify-center rounded-full bg-[#24262B] text-[#B5B8BE] hover:text-white">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7" /></svg>
+        </span>
+      }
     >
-      {pending ? "Saliendo…" : "Cerrar sesión"}
-    </button>
+      {() => (
+        <button
+          disabled={pending}
+          onClick={() => start(() => signOut())}
+          className="h-10 cursor-pointer rounded-lg border-none bg-transparent px-3 text-left text-sm font-medium text-red hover:bg-white/5 disabled:opacity-60"
+        >
+          {pending ? "Saliendo…" : "Cerrar sesión"}
+        </button>
+      )}
+    </Popover>
   );
 }

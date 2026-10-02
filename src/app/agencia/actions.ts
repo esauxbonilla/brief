@@ -118,13 +118,18 @@ export async function movePiece(id: string, recordDay: string) {
   refresh(p.client_id);
 }
 
-/** The client's Drive folder; their "Subir a Drive" button opens it. */
-export async function setClientDrive(clientId: string, url: string) {
+/** The client's Drive folder (any link); their "Subir a Drive" button opens it. */
+export async function setClientDrive(clientId: string, url: string): Promise<{ error?: string }> {
   await clientTz(clientId);
-  const u = url.trim();
-  if (u && !/^https?:\/\/\S+$/.test(u)) throw new Error("Pega un link que empiece con https://");
-  await repo.setClientDrive(clientId, u || null);
+  try {
+    await repo.setClientDrive(clientId, url.trim() || null);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (/drive_url/.test(msg)) return { error: "Falta correr en Supabase: alter table clients add column drive_url text;" };
+    return { error: `No se pudo guardar: ${msg}` };
+  }
   refresh(clientId);
+  return {};
 }
 
 export async function deletePiece(id: string) {
