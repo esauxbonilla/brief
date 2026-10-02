@@ -1,4 +1,38 @@
-# Handoff: Calendario de contenido para clientes (coach fitness)
+# Calendario de contenido
+
+## Puesta en marcha
+
+```bash
+npm install
+npm run dev        # http://localhost:3000
+npm test           # lógica de fechas, urgencia, reglas de piezas, parser de guion, avisos
+```
+
+**Sin variables de entorno arranca en modo demo**: datos de ejemplo en memoria con fechas relativas a hoy, sin login. Cliente en `/`, agencia en `/agencia`. El modo demo es solo para probar: en Vercel cada instancia tiene su propia memoria y se reinicia.
+
+### Producción (Supabase + Vercel)
+1. Crea un proyecto en Supabase y aplica `supabase/migrations/` (`supabase db push`, o pega el SQL en el editor).
+2. Opcional: `npm run seed:gen` y ejecuta `supabase/seed.sql` (cliente demo `marco@example.com`).
+3. Auth → URL Configuration: añade `https://TU-DOMINIO/auth/callback` a Redirect URLs.
+4. Da de alta a la agencia: inserta el usuario en `agency_members` (`agency_id`, `user_id` de `auth.users`).
+5. Clientes: fila en `clients` con su `email`. En su primer login con magic link se vincula solo (`claim_client`).
+6. Variables en Vercel: ver `.env.example` (Supabase, `CRON_SECRET`, WhatsApp). El cron diario está en `vercel.json` (15:00 UTC = 9:00 CDMX).
+
+### Estructura
+- `src/lib/dates.ts`, `src/lib/pieces.ts` — fechas en la zona horaria del cliente, urgencia, `atrasado` derivado, jerarquía visual.
+- `src/lib/data/` — acceso a datos: `supabase.ts` (RLS + RPCs) y `demo.ts` (memoria), misma interfaz.
+- `src/components/client/` — calendario escritorio, móvil, detalle (Brief/Guión/Referencias), sesión de grabación.
+- `src/app/agencia/` — panel de la agencia.
+- `supabase/migrations/` — esquema, RLS, funciones del cliente, buckets de Storage.
+
+### Diferencias con el handoff
+- La tabla `references` se llama `piece_references` (`references` es palabra reservada en Postgres).
+- `clients` añade `email`, `tz` y `user_id`; `pieces` añade `notes`; `uploads` añade `file_name`; nueva tabla `notifications` (cola de avisos).
+- La grilla mensual de escritorio usa `min-width: 880px` (no 1000) para que el panel de detalle quepa al lado en pantallas de 1440px.
+
+---
+
+# Handoff original: Calendario de contenido para clientes (coach fitness)
 
 ## Overview
 App web para que el **cliente de una agencia de contenido** (un coach fitness, no técnico) entre y sepa en 5 segundos qué tiene que grabar esta semana. La agencia produce todo; el cliente solo graba material crudo y aprueba. La app la usa el cliente, no la agencia (la agencia necesita además un panel simple para cargar piezas y guiones — ver "Panel agencia").

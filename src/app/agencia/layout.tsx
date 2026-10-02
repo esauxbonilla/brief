@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -7,6 +8,7 @@ import { isDemo } from "@/lib/supabase/config";
 export const metadata: Metadata = { title: "Panel agencia" };
 
 export default async function AgencyLayout({ children }: LayoutProps<"/agencia">) {
+  await connection();
   const s = await repo.agencySession();
   if (!s) redirect("/login");
   return (

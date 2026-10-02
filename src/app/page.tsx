@@ -1,9 +1,11 @@
+import { connection } from "next/server";
 import { redirect } from "next/navigation";
 import { ClientApp } from "@/components/client/ClientApp";
 import { repo } from "@/lib/data";
 import { thisWeekPending } from "@/lib/pieces";
 
 export default async function Home() {
+  await connection();
   const session = await repo.clientSession();
   if (!session) redirect((await repo.agencySession()) ? "/agencia" : "/login");
   const pieces = await repo.clientPieces(session.client.id);
