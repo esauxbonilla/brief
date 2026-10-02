@@ -6,7 +6,9 @@ const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"], wei
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"], weight: ["500"] });
 
 export const metadata: Metadata = {
-  title: "Calendario de contenido",
+  title: "brief",
+  applicationName: "brief",
+  appleWebApp: { title: "brief", statusBarStyle: "black-translucent" },
   description: "Lo que tienes que grabar esta semana.",
 };
 
