@@ -1,33 +1,26 @@
 "use server";
 
-import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { isDemo } from "@/lib/supabase/config";
 import { supabaseServer } from "@/lib/supabase/server";
 
-export type LoginState = { sent?: string; error?: string };
+export type LoginState = { error?: string };
 
-export async function sendMagicLink(_: LoginState, form: FormData): Promise<LoginState> {
+export async function signIn(_: LoginState, form: FormData): Promise<LoginState> {
   const email = String(form.get("email") ?? "").trim().toLowerCase();
+  const password = String(form.get("password") ?? "");
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { error: "Escribe un email válido." };
+  if (!password) return { error: "Escribe tu contraseña." };
   if (isDemo) return { error: "Modo demo: no hay inicio de sesión. Entra directo al calendario." };
-  const h = await headers();
-  const origin = h.get("origin") ?? `https://${h.get("host")}`;
   const sb = await supabaseServer();
-  const { error } = await sb.auth.signInWithOtp({
-    email,
-    options: { emailRedirectTo: `${origin}/auth/callback`, shouldCreateUser: true },
-  });
+  const { error } = await sb.auth.signInWithPassword({ email, password });
   if (error) {
-    console.error("[login] signInWithOtp", error.status, error.code, error.message);
-    const reason =
-      error.status === 429 || /rate limit/i.test(error.message)
-        ? "Se alcanzó el límite de correos. Espera unos minutos."
-        : /not authorized|not allowed/i.test(error.message)
-          ? "El servidor de correo no tiene permiso para enviar a este email. Hay que configurar SMTP en Supabase."
-          : "No pudimos enviar el enlace.";
-    return { error: `${reason} (${error.code ?? error.status}: ${error.message})` };
+    console.error("[login] signInWithPassword", error.status, error.code, error.message);
+    if (error.code === "invalid_credentials") return { error: "Email o contraseña incorrectos." };
+    return { error: `No pudimos entrar (${error.code ?? error.status}: ${error.message})` };
   }
-  return { sent: email };
+  // "/" sends agency members on to /agencia.
+  redirect("/");
 }
 
 export async function signOut() {
