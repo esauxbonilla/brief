@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useActionState, useState, useTransition, type ReactNode } from "react";
+import { useState, useTransition, type ReactNode } from "react";
 import { CHANNELS, STATUS, type DisplayStatus } from "@/lib/constants";
 import { dayIndex, dayKey, shortLabel, urgency } from "@/lib/dates";
 import { displayStatus, isOverdue, isPending } from "@/lib/pieces";
@@ -231,33 +231,5 @@ export function ClientBoard({ pieces, tz, serverNow }: { pieces: PieceFull[]; tz
         {done.map((p) => <Row key={p.id} p={p} tz={tz} now={now} />)}
       </Section>
     </div>
-  );
-}
-
-/** Password form for a client's account (clientId) or the signed-in agency user. */
-export function PasswordForm({ clientId, label }: { clientId?: string; label: string }) {
-  const [state, action, pending] = useActionState<A.FormResult, FormData>(clientId ? A.setClientPassword : A.setMyPassword, {});
-  return (
-    <form action={action} className="flex flex-col gap-2">
-      <span className="text-[13px] text-text-2c">{label}</span>
-      <div className="flex flex-wrap gap-2">
-        {clientId && <input type="hidden" name="client_id" value={clientId} />}
-        <input
-          name="password"
-          type={clientId ? "text" : "password"}
-          required
-          minLength={6}
-          autoComplete="new-password"
-          placeholder="Nueva contraseña"
-          className="h-10 min-w-0 flex-[1_1_220px] rounded-[10px] border bg-surface-2 px-3 text-sm text-text outline-none placeholder:text-text-4 focus:border-amber"
-          style={{ borderColor: "rgba(255,255,255,0.12)" }}
-        />
-        <button disabled={pending} className="h-10 cursor-pointer rounded-[10px] border-none bg-amber px-4 text-sm font-semibold text-amber-ink hover:bg-amber-hover disabled:opacity-50">
-          {pending ? "Guardando…" : "Guardar contraseña"}
-        </button>
-      </div>
-      {state.error && <span className="text-[13px] text-red">{state.error}</span>}
-      {state.ok && <span className="text-[13px] text-green">{state.ok}</span>}
-    </form>
   );
 }

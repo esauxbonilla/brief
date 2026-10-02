@@ -24,9 +24,6 @@ export interface Client {
   initials: string;
   avatar_url: string | null;
   phone: string | null;
-  /** Login email; the client's account is linked to it. */
-  email?: string | null;
-  user_id?: string | null;
   /** IANA timezone; all "day" logic (week, hoy/mañana, 20:00) uses it. */
   tz: string;
 }

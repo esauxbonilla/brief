@@ -6,7 +6,7 @@ import { repo } from "@/lib/data";
 import { computeRecordDue, dayKey, shortLabel, zonedTime } from "@/lib/dates";
 import { parseScript } from "@/lib/script-parse";
 import { isDemo } from "@/lib/supabase/config";
-import { supabaseAdmin, supabaseServer } from "@/lib/supabase/server";
+import { supabaseServer } from "@/lib/supabase/server";
 import type { Channel, PieceFull } from "@/lib/types";
 
 // Agency actions. RLS restricts writes to the agency's own clients; we also
@@ -200,60 +200,4 @@ export async function fileLink(pieceId: string, path: string) {
   const p = await ownPiece(pieceId);
   if (!p.uploads.some((u) => u.file_url === path) && !p.references.some((r) => r.uploaded_url === path)) throw new Error("Archivo no encontrado");
   return repo.fileUrl(path);
-}
-
-// ── Accesos ─────────────────────────────────────────────────────────────────
-// Login is email + password: no emails are sent. The agency sets each client's
-// password; creating auth users needs the service-role key.
-
-export type FormResult = { ok?: string; error?: string };
-
-const MIN_PASSWORD = 6;
-
-async function findUserId(admin: ReturnType<typeof supabaseAdmin>, email: string) {
-  for (let page = 1; ; page++) {
-    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
-    if (error) throw new Error(error.message);
-    const user = data.users.find((u) => u.email?.toLowerCase() === email.toLowerCase());
-    if (user) return user.id;
-    if (data.users.length < 1000) return null;
-  }
-}
-
-export async function setClientPassword(_: FormResult, form: FormData): Promise<FormResult> {
-  const s = await agency();
-  const client = s.clients.find((c) => c.id === String(form.get("client_id")));
-  if (!client) return { error: "Cliente no encontrado." };
-  const password = String(form.get("password") ?? "");
-  if (password.length < MIN_PASSWORD) return { error: `La contraseña necesita al menos ${MIN_PASSWORD} caracteres.` };
-  if (isDemo) return { error: "Modo demo: no hay cuentas." };
-  const email = client.email?.trim().toLowerCase();
-  if (!email) return { error: "Este cliente no tiene email." };
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return { error: "Falta SUPABASE_SERVICE_ROLE_KEY en Vercel (Settings → Environment Variables). Agrégala y vuelve a desplegar." };
-  }
-  const admin = supabaseAdmin();
-  let userId = client.user_id ?? null;
-  if (!userId) {
-    const { data, error } = await admin.auth.admin.createUser({ email, password, email_confirm: true });
-    if (data.user) userId = data.user.id;
-    else if (error?.code === "email_exists") userId = await findUserId(admin, email);
-    else return { error: `No se pudo crear la cuenta (${error?.message}).` };
-    if (!userId) return { error: "No encontré la cuenta de este email." };
-  }
-  const { error } = await admin.auth.admin.updateUserById(userId, { password, email_confirm: true });
-  if (error) return { error: `No se pudo guardar la contraseña (${error.message}).` };
-  await admin.from("clients").update({ user_id: userId }).eq("id", client.id).is("user_id", null);
-  return { ok: `Listo: ${email} ya entra con esa contraseña.` };
-}
-
-export async function setMyPassword(_: FormResult, form: FormData): Promise<FormResult> {
-  await agency();
-  const password = String(form.get("password") ?? "");
-  if (password.length < MIN_PASSWORD) return { error: `La contraseña necesita al menos ${MIN_PASSWORD} caracteres.` };
-  if (isDemo) return { error: "Modo demo: no hay cuentas." };
-  const sb = await supabaseServer();
-  const { error } = await sb.auth.updateUser({ password });
-  if (error) return { error: `No se pudo guardar la contraseña (${error.message}).` };
-  return { ok: "Listo. Ya puedes entrar con tu email y esta contraseña." };
 }
