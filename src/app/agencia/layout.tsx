@@ -4,6 +4,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { repo } from "@/lib/data";
 import { isDemo } from "@/lib/supabase/config";
+import { SignOutButton } from "./ui";
 
 export const metadata: Metadata = { title: "Panel agencia" };
 
@@ -26,9 +27,10 @@ export default async function AgencyLayout({ children }: LayoutProps<"/agencia">
             </Link>
           ))}
         </nav>
-        {isDemo && (
-          <Link href="/" className="ml-auto text-[13px] no-underline">Ver como cliente →</Link>
-        )}
+        <div className="ml-auto flex items-center gap-4 text-[13px]">
+          {isDemo && <Link href="/" className="no-underline">Ver como cliente →</Link>}
+          <SignOutButton />
+        </div>
       </header>
       <main className="mx-auto max-w-[1100px] px-6 py-6">{children}</main>
     </div>

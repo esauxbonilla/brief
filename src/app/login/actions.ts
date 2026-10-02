@@ -68,7 +68,9 @@ export async function signIn(_: LoginState, form: FormData): Promise<LoginState>
 }
 
 export async function signOut() {
-  if (isDemo) return;
-  const sb = await supabaseServer();
-  await sb.auth.signOut();
+  if (!isDemo) {
+    const sb = await supabaseServer();
+    await sb.auth.signOut();
+  }
+  redirect("/login");
 }

@@ -7,7 +7,7 @@ import { addDays, dayKey, keyParts, MESES, shortLabel, urgency, weekStart, type 
 import { cardStyle, currentWeek, isClientsTurn, isPending, plural, thisWeekPending } from "@/lib/pieces";
 import type { PieceFull } from "@/lib/types";
 import { ActionButtons, BriefTab, DetailHeader, DetailTabs, GuionTab, RefsTab, useDetailOverlays, type Tab } from "./PieceDetail";
-import { OverdueStrip } from "./shared";
+import { AccountMenu, OverdueStrip } from "./shared";
 import { useApp } from "./state";
 import { AgencyAvatar, ChannelChips, ClientAvatar, Pill, StatusLegend, UrgencyText } from "./ui";
 
@@ -56,7 +56,10 @@ export function DesktopCalendar() {
           <OverdueStrip variant="desktop" onOpen={openPiece} />
           <div className="flex flex-wrap items-start justify-between gap-5">
             <div className="flex flex-col gap-2.5">
-              <div className="text-xs tracking-[0.02em] text-text-3">{client.name} · Calendario de contenido · con {agency.name}</div>
+              <div className="flex items-center gap-2.5 text-xs tracking-[0.02em] text-text-3">
+                <AccountMenu size={26} align="left" />
+                {client.name} · Calendario de contenido · con {agency.name}
+              </div>
               <div className="flex items-center gap-3.5">
                 <h1 className="m-0 min-w-[220px] text-[30px] font-semibold tracking-[-0.02em]">{MESES[ym.m]} {ym.y}</h1>
                 <div className="flex gap-1.5">

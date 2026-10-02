@@ -7,7 +7,7 @@ import { addDays, dayIndex, dayKey, DIAS_LETRA, keyParts, longDayLabel, MESES, s
 import { cardStyle, currentWeek, inWeek, isClientsTurn, isPending, plural, thisWeekPending } from "@/lib/pieces";
 import type { PieceFull } from "@/lib/types";
 import { ActionButtons, BriefTab, DetailHeader, DetailTabs, GuionTab, RefsTab, useDetailOverlays, type Tab } from "./PieceDetail";
-import { OverdueStrip } from "./shared";
+import { AccountMenu, OverdueStrip } from "./shared";
 import { useApp } from "./state";
 import { AgencyAvatar, ChannelChips, ClientAvatar, UrgencyText } from "./ui";
 
@@ -101,7 +101,7 @@ export function MobileCalendar() {
               <span className="inline-block text-sm text-text-3 transition-transform duration-[250ms]" style={{ transform: monthOpen ? "rotate(180deg)" : "rotate(0deg)" }}>▾</span>
             </button>
           </div>
-          <ClientAvatar initials={client.initials} size={36} />
+          <AccountMenu size={36} align="right" />
         </div>
 
         <div

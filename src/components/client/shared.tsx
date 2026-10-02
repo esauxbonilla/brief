@@ -1,10 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { useState, useTransition } from "react";
+import { signOut } from "@/app/login/actions";
 import { CHANNELS } from "@/lib/constants";
 import { urgency } from "@/lib/dates";
 import { overduePieces, plural } from "@/lib/pieces";
 import { useApp } from "./state";
+import { ClientAvatar } from "./ui";
 
 /** Sticky red strip with overdue pieces. Sits above the "esta semana" block. */
 export function OverdueStrip({ variant, onOpen }: { variant: "desktop" | "mobile"; onOpen: (id: string) => void }) {
@@ -71,6 +74,39 @@ export function Toast() {
         >
           Deshacer
         </button>
+      )}
+    </div>
+  );
+}
+
+/** The client's avatar; tapping it opens "Cerrar sesión". Plain avatar in the agency preview. */
+export function AccountMenu({ size, align }: { size: number; align: "left" | "right" }) {
+  const { client, readOnly } = useApp();
+  const [open, setOpen] = useState(false);
+  const [pending, start] = useTransition();
+  if (readOnly) return <ClientAvatar initials={client.initials} size={size} />;
+  return (
+    <div className="relative">
+      <button onClick={() => setOpen((o) => !o)} aria-label="Tu cuenta" aria-expanded={open} className="flex cursor-pointer rounded-full border-none bg-transparent p-0">
+        <ClientAvatar initials={client.initials} size={size} />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-[40]" onClick={() => setOpen(false)} />
+          <div
+            className={`absolute top-full z-[41] mt-2 flex min-w-[190px] flex-col rounded-xl border bg-surface-2 p-1.5 shadow-lg ${align === "right" ? "right-0" : "left-0"}`}
+            style={{ borderColor: "rgba(255,255,255,0.1)" }}
+          >
+            <span className="px-3 py-2 text-xs text-text-3">{client.name}</span>
+            <button
+              disabled={pending}
+              onClick={() => start(() => signOut())}
+              className="h-10 cursor-pointer rounded-lg border-none bg-transparent px-3 text-left text-sm font-medium text-red hover:bg-white/5 disabled:opacity-60"
+            >
+              {pending ? "Saliendo…" : "Cerrar sesión"}
+            </button>
+          </div>
+        </>
       )}
     </div>
   );

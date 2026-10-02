@@ -7,6 +7,7 @@ import { CHANNELS, STATUS, type DisplayStatus } from "@/lib/constants";
 import { dayIndex, dayKey, shortLabel, urgency } from "@/lib/dates";
 import { displayStatus, isOverdue, isPending } from "@/lib/pieces";
 import type { PieceFull } from "@/lib/types";
+import { signOut } from "../login/actions";
 import * as A from "./actions";
 
 export const MIN_LEAD_DAYS = 7;
@@ -231,5 +232,18 @@ export function ClientBoard({ pieces, tz, serverNow }: { pieces: PieceFull[]; tz
         {done.map((p) => <Row key={p.id} p={p} tz={tz} now={now} />)}
       </Section>
     </div>
+  );
+}
+
+export function SignOutButton() {
+  const [pending, start] = useTransition();
+  return (
+    <button
+      disabled={pending}
+      onClick={() => start(() => signOut())}
+      className="cursor-pointer border-none bg-transparent p-0 text-[13px] text-text-3 hover:text-white disabled:opacity-60"
+    >
+      {pending ? "Saliendo…" : "Cerrar sesión"}
+    </button>
   );
 }
