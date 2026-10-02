@@ -1,0 +1,261 @@
+"use client";
+
+import { useActionState, useMemo, useState, type ReactNode } from "react";
+import { CHANNEL_KEYS, CHANNELS, EDIT_DAYS, GENERIC } from "@/lib/constants";
+import { addDays, DEFAULT_BUFFER_DAYS } from "@/lib/dates";
+import { parseScript } from "@/lib/script-parse";
+import type { Channel, PieceFull } from "@/lib/types";
+import * as A from "../actions";
+import { Btn, useAct } from "../ui";
+
+const field = "w-full rounded-[10px] border bg-surface-2 px-3 text-sm text-text outline-none focus:border-amber placeholder:text-text-4";
+const fieldStyle = { borderColor: "rgba(255,255,255,0.12)" };
+
+function F({ label, hint, children }: { label: string; hint?: ReactNode; children: ReactNode }) {
+  return (
+    <label className="flex flex-col gap-1.5">
+      <span className="flex items-baseline justify-between gap-2 text-[13px] text-text-2c">
+        {label}
+        {hint && <span className="text-xs text-text-3">{hint}</span>}
+      </span>
+      {children}
+    </label>
+  );
+}
+
+export interface PieceFormInit {
+  id?: string;
+  client_id: string;
+  channel: Channel;
+  title: string;
+  format: string;
+  objective: string;
+  hook: string;
+  notes: string;
+  shots: string;
+  publish_date: string;
+  record_due_date: string;
+  edit_days: number;
+}
+
+export function PieceForm({ init }: { init: PieceFormInit }) {
+  const [state, action, pending] = useActionState<A.SaveState, FormData>(A.savePiece, {});
+  const [channel, setChannel] = useState(init.channel);
+  const [title, setTitle] = useState(init.title);
+  const [publish, setPublish] = useState(init.publish_date);
+  const [editDays, setEditDays] = useState(init.edit_days);
+  const [due, setDue] = useState(init.record_due_date);
+  const [dueTouched, setDueTouched] = useState(!!init.id);
+  const words = title.trim() ? title.trim().split(/\s+/).length : 0;
+
+  const recalc = (pub: string, ed: number) => {
+    if (!dueTouched && pub) setDue(addDays(pub, -(ed + DEFAULT_BUFFER_DAYS)));
+  };
+
+  return (
+    <form action={action} className="flex flex-col gap-4">
+      {init.id && <input type="hidden" name="id" value={init.id} />}
+      <input type="hidden" name="client_id" value={init.client_id} />
+      <div className="grid gap-4 sm:grid-cols-[200px_1fr]">
+        <F label="Canal">
+          <select
+            name="channel"
+            value={channel}
+            onChange={(e) => {
+              const c = e.target.value as Channel;
+              setChannel(c);
+              if (!init.id) {
+                setEditDays(EDIT_DAYS[c]);
+                recalc(publish, EDIT_DAYS[c]);
+              }
+            }}
+            className={`${field} h-10`}
+            style={fieldStyle}
+          >
+            {CHANNEL_KEYS.map((k) => <option key={k} value={k}>{CHANNELS[k].name}</option>)}
+          </select>
+        </F>
+        <F label="Título" hint={<span style={{ color: words > 5 ? "#FF5C5C" : undefined }}>{words}/5 palabras</span>}>
+          <input name="title" required value={title} onChange={(e) => setTitle(e.target.value)} className={`${field} h-10`} style={fieldStyle} />
+        </F>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <F label="Se publica el">
+          <input type="date" name="publish_date" required value={publish} onChange={(e) => { setPublish(e.target.value); recalc(e.target.value, editDays); }} className={`${field} h-10`} style={fieldStyle} />
+        </F>
+        <F label="Días de edición">
+          <input type="number" min={0} max={60} name="edit_days" value={editDays} onChange={(e) => { const n = Number(e.target.value) || 0; setEditDays(n); recalc(publish, n); }} className={`${field} h-10`} style={fieldStyle} />
+        </F>
+        <F label="Grabar antes del (20:00)" hint={dueTouched ? <button type="button" className="cursor-pointer border-none bg-transparent p-0 text-xs text-amber" onClick={() => { setDueTouched(false); setDue(addDays(publish, -(editDays + DEFAULT_BUFFER_DAYS))); }}>recalcular</button> : "calculada"}>
+          <input type="date" name="record_due_date" required value={due} onChange={(e) => { setDue(e.target.value); setDueTouched(true); }} className={`${field} h-10`} style={fieldStyle} />
+        </F>
+      </div>
+
+      <F label="Formato">
+        <input name="format" defaultValue={init.format} placeholder={GENERIC[channel].format} className={`${field} h-10`} style={fieldStyle} />
+      </F>
+      <F label="Para qué sirve (objetivo)">
+        <textarea name="objective" defaultValue={init.objective} rows={2} className={`${field} py-2.5`} style={fieldStyle} />
+      </F>
+      <F label="Primera frase a cámara (gancho)">
+        <input name="hook" defaultValue={init.hook} className={`${field} h-10`} style={fieldStyle} />
+      </F>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <F label="Tomas que necesitamos" hint="una por línea">
+          <textarea name="shots" defaultValue={init.shots} rows={6} className={`${field} py-2.5`} style={fieldStyle} />
+        </F>
+        <F label="Ten en cuenta" hint="una por línea">
+          <textarea name="notes" defaultValue={init.notes} rows={6} className={`${field} py-2.5`} style={fieldStyle} />
+        </F>
+      </div>
+      {state.error && <span className="text-[13px] text-red">{state.error}</span>}
+      <div>
+        <button disabled={pending || words > 5} className="h-10 cursor-pointer rounded-[10px] border-none bg-amber px-5 text-sm font-semibold text-amber-ink hover:bg-amber-hover disabled:opacity-50">
+          {pending ? "Guardando…" : init.id ? "Guardar cambios" : "Crear borrador"}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+export function ScriptEditor({ piece }: { piece: PieceFull }) {
+  const [raw, setRaw] = useState("");
+  const preview = useMemo(() => parseScript(raw), [raw]);
+  const { pending, run } = useAct();
+  return (
+    <div className="flex flex-col gap-3">
+      {piece.blocks.length > 0 && (
+        <div className="flex flex-col gap-2">
+          {piece.blocks.map((b, i) => (
+            <div key={b.id} className="rounded-xl bg-surface-2 px-3.5 py-3">
+              <div className="mb-1.5 flex items-center gap-2 text-[11px] font-semibold tracking-[0.08em] uppercase">
+                <span className="font-mono text-text-4">{String(i + 1).padStart(2, "0")}</span>
+                <span className="text-text-2b">{b.label}</span>
+                {b.duration && <span className="font-normal tracking-normal normal-case text-text-3">{b.duration}</span>}
+                {b.recorded && <span className="text-green">✓ grabado</span>}
+              </div>
+              {b.lines.map((l, j) => <p key={j} className="m-0 text-sm leading-[1.45] text-text-2">{l}</p>)}
+              {b.note && <p className="m-0 mt-1 text-xs text-text-3">Nota: {b.note}</p>}
+            </div>
+          ))}
+        </div>
+      )}
+      <F label={piece.blocks.length ? "Reemplazar guion: pega el texto del Google Doc" : "Pega el guion desde Google Docs"} hint="Encabezados: Gancho · Problema · Solución · Prueba social · CTA">
+        <textarea
+          value={raw}
+          onChange={(e) => setRaw(e.target.value)}
+          rows={8}
+          placeholder={"Gancho (5 s)\n¿Sigues sin…?\nNota: mira a cámara\n\nProblema\n…"}
+          className={`${field} py-2.5 font-mono text-[13px]`}
+          style={fieldStyle}
+        />
+      </F>
+      {raw.trim() && (
+        <div className="flex flex-wrap items-center gap-3 text-[13px]">
+          {preview.length ? (
+            <span className="text-text-2c">
+              Detecté {preview.length} bloques: {preview.map((b) => `${b.label} (${b.lines.length} ${b.lines.length === 1 ? "línea" : "líneas"})`).join(" · ")}
+            </span>
+          ) : (
+            <span className="text-red">No encuentro encabezados. Cada bloque debe empezar con Gancho, Problema, Solución, Prueba social o CTA en su propia línea.</span>
+          )}
+          <Btn kind="primary" disabled={!preview.length || pending} onClick={() => run(async () => { await A.saveScript(piece.id, raw); setRaw(""); })}>
+            Guardar guion
+          </Btn>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function References({ piece }: { piece: PieceFull }) {
+  const { pending, run } = useAct();
+  const [requested, setRequested] = useState(false);
+  const blockNo = (id: string | null) => {
+    const i = piece.blocks.findIndex((b) => b.id === id);
+    return i >= 0 ? `Bloque ${i + 1}` : null;
+  };
+  return (
+    <div className="flex flex-col gap-3">
+      {piece.references.map((r) => (
+        <div key={r.id} className="flex items-center gap-3 rounded-xl bg-surface-2 p-2.5">
+          {r.image_url || r.uploaded_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={r.uploaded_url ?? r.image_url!} alt="" className="h-16 w-10 flex-none rounded-md object-cover" />
+          ) : (
+            <span className="flex h-16 w-10 flex-none items-center justify-center rounded-md border border-dashed text-[10px] text-text-3" style={{ borderColor: "rgba(245,184,61,0.5)" }}>foto</span>
+          )}
+          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <span className="text-sm font-semibold">{r.title}</span>
+            <span className="text-xs text-text-3">
+              {r.requested_from_client ? (r.uploaded_url ? "El cliente ya la envió ✓" : "Pedida al cliente · pendiente") : "De la agencia"}
+              {blockNo(r.block_id) && ` · ${blockNo(r.block_id)}`}
+              {r.note && ` · ${r.note}`}
+            </span>
+          </div>
+          <Btn kind="danger" disabled={pending} onClick={() => confirm("¿Borrar la referencia?") && run(() => A.deleteReference(piece.id, r.id))}>Borrar</Btn>
+        </div>
+      ))}
+      <form
+        className="flex flex-col gap-3 rounded-xl border p-3.5"
+        style={{ borderColor: "rgba(255,255,255,0.08)" }}
+        action={(fd) => run(() => A.addReference(fd))}
+      >
+        <input type="hidden" name="piece_id" value={piece.id} />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <F label="Título"><input name="title" required className={`${field} h-10`} style={fieldStyle} placeholder={requested ? "Foto de Ramiro hace 3 meses" : "Formato pantalla dividida"} /></F>
+          <F label="Bloque del guion">
+            <select name="block_id" className={`${field} h-10`} style={fieldStyle} defaultValue="">
+              <option value="">— Ninguno —</option>
+              {piece.blocks.map((b, i) => <option key={b.id} value={b.id}>{i + 1}. {b.label}</option>)}
+            </select>
+          </F>
+        </div>
+        <F label="Nota"><input name="note" className={`${field} h-10`} style={fieldStyle} /></F>
+        <label className="flex items-center gap-2 text-[13px] text-text-2c">
+          <input type="checkbox" name="requested" checked={requested} onChange={(e) => setRequested(e.target.checked)} className="size-4 accent-amber" />
+          Pedirle este material al cliente (él sube la foto)
+        </label>
+        {!requested && (
+          <F label="Imagen"><input type="file" name="image" accept="image/*" className="text-[13px] text-text-2c" /></F>
+        )}
+        <div><Btn type="submit" kind="primary" disabled={pending}>Añadir referencia</Btn></div>
+      </form>
+    </div>
+  );
+}
+
+export function PieceStatusActions({ piece }: { piece: PieceFull }) {
+  const { pending, run } = useAct();
+  const s = piece.status;
+  return (
+    <div className="flex flex-wrap gap-2">
+      {s === "borrador" && <Btn kind="primary" disabled={pending} onClick={() => run(() => A.sendBriefs([piece.id]))}>Enviar brief</Btn>}
+      {s === "edicion" && <Btn kind="primary" disabled={pending} onClick={() => run(() => A.setStatus(piece.id, "listo"))}>Marcar como listo</Btn>}
+      {s === "listo" && <Btn kind="primary" disabled={pending} onClick={() => run(() => A.setStatus(piece.id, "publicado"))}>Marcar como publicado</Btn>}
+      {s !== "cancelado" && s !== "publicado" && (
+        <Btn kind="danger" disabled={pending} onClick={() => confirm("¿Cancelar esta pieza? Desaparece del calendario del cliente.") && run(() => A.cancelPiece(piece.id))}>Cancelar pieza</Btn>
+      )}
+      <Btn kind="danger" disabled={pending} onClick={() => confirm("¿Borrar la pieza definitivamente?") && run(() => A.deletePiece(piece.id))}>Borrar</Btn>
+    </div>
+  );
+}
+
+export function UploadsList({ piece }: { piece: PieceFull }) {
+  const open = async (path: string) => {
+    const url = await A.fileLink(piece.id, path);
+    window.open(url, "_blank", "noopener");
+  };
+  if (!piece.uploads.length) return <span className="text-[13px] text-text-3">El cliente aún no ha subido material.</span>;
+  return (
+    <div className="flex flex-col gap-1.5">
+      {piece.uploads.map((u) => (
+        <button key={u.id} onClick={() => open(u.file_url)} className="flex cursor-pointer items-center justify-between gap-3 rounded-lg border-none bg-surface-2 px-3 py-2 text-left text-[13px] text-text hover:bg-surface-3">
+          <span>{u.file_name || u.file_url.split("/").pop()}</span>
+          <span className="text-xs text-text-3">{new Date(u.uploaded_at).toLocaleString("es-MX", { dateStyle: "short", timeStyle: "short" })}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
