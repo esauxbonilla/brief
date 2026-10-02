@@ -8,7 +8,7 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 export const metadata: Metadata = {
   title: "brief",
   applicationName: "brief",
-  appleWebApp: { title: "brief", statusBarStyle: "black-translucent" },
+  appleWebApp: { title: "brief", statusBarStyle: "black" },
   description: "Lo que tienes que grabar esta semana.",
 };
 
