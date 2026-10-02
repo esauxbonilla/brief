@@ -17,7 +17,16 @@ export async function sendMagicLink(_: LoginState, form: FormData): Promise<Logi
     email,
     options: { emailRedirectTo: `${origin}/auth/callback`, shouldCreateUser: true },
   });
-  if (error) return { error: "No pudimos enviar el enlace. Inténtalo de nuevo en un minuto." };
+  if (error) {
+    console.error("[login] signInWithOtp", error.status, error.code, error.message);
+    const reason =
+      error.status === 429 || /rate limit/i.test(error.message)
+        ? "Se alcanzó el límite de correos. Espera unos minutos."
+        : /not authorized|not allowed/i.test(error.message)
+          ? "El servidor de correo no tiene permiso para enviar a este email. Hay que configurar SMTP en Supabase."
+          : "No pudimos enviar el enlace.";
+    return { error: `${reason} (${error.code ?? error.status}: ${error.message})` };
+  }
   return { sent: email };
 }
 
