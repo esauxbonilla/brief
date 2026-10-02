@@ -41,7 +41,14 @@ export async function signIn(_: LoginState, form: FormData): Promise<LoginState>
   if (isDemo) return { error: "Modo demo: no hay inicio de sesión. Entra directo al calendario." };
   const sb = await supabaseServer();
   const first = await sb.auth.signInWithPassword({ email, password });
-  if (!first.error) redirect("/");
+  if (!first.error) {
+    // Password set outside this flow (e.g. Supabase dashboard): lock it in.
+    const user = first.data.user;
+    if (!user.app_metadata?.password_set && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      await supabaseAdmin().auth.admin.updateUserById(user.id, { app_metadata: { password_set: true } });
+    }
+    redirect("/");
+  }
   if (first.error.code !== "invalid_credentials") {
     console.error("[login] signInWithPassword", first.error.status, first.error.code, first.error.message);
     return { error: `No pudimos entrar (${first.error.code ?? first.error.status}: ${first.error.message})` };
