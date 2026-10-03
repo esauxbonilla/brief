@@ -1,5 +1,6 @@
 import "server-only";
-import { supabaseServer } from "../supabase/server";
+import { cache } from "react";
+import { currentUserId, supabaseServer } from "../supabase/server";
 import type { PieceFull } from "../types";
 import type { Repo } from "./repo";
 
@@ -31,27 +32,34 @@ function check(res: { data: unknown; error: { message: string } | null }): any {
   return res.data;
 }
 
+// Sessions are memoized per request: layout, page and actions share one lookup.
+const clientSession = cache(async () => {
+  const uid = await currentUserId();
+  if (!uid) return null;
+  const sb = await supabaseServer();
+  // Filter by user: an agency member can also read every client of the agency.
+  const own = () => sb.from("clients").select("*, agency:agencies(*)").eq("user_id", uid).maybeSingle();
+  let row = check(await own());
+  // First login: link the auth user to the client row with the same email.
+  if (!row && check(await sb.rpc("claim_client"))) row = check(await own());
+  if (!row) return null;
+  const { agency, ...client } = row;
+  return { client, agency };
+});
+
+const agencySession = cache(async () => {
+  const uid = await currentUserId();
+  if (!uid) return null;
+  const sb = await supabaseServer();
+  const m = check(await sb.from("agency_members").select("agency:agencies(*, clients(*))").eq("user_id", uid).limit(1).maybeSingle());
+  if (!m?.agency) return null;
+  const { clients, ...agency } = m.agency;
+  return { agency, clients: [...clients].sort((a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name)) };
+});
+
 export const supabaseRepo: Repo = {
-  async clientSession() {
-    const sb = await supabaseServer();
-    const { data: auth } = await sb.auth.getUser();
-    if (!auth.user) return null;
-    const clientId = check(await sb.rpc("claim_client")) as string | null;
-    if (!clientId) return null;
-    const client = check(await sb.from("clients").select("*").eq("id", clientId).single());
-    const agency = check(await sb.from("agencies").select("*").eq("id", client.agency_id).single());
-    return { client, agency };
-  },
-  async agencySession() {
-    const sb = await supabaseServer();
-    const { data: auth } = await sb.auth.getUser();
-    if (!auth.user) return null;
-    const m = check(await sb.from("agency_members").select("agency_id").eq("user_id", auth.user.id).limit(1));
-    if (!m.length) return null;
-    const agency = check(await sb.from("agencies").select("*").eq("id", m[0].agency_id).single());
-    const clients = check(await sb.from("clients").select("*").eq("agency_id", agency.id).order("name"));
-    return { agency, clients };
-  },
+  clientSession: () => clientSession(),
+  agencySession: () => agencySession(),
 
   async clientPieces(clientId) {
     // RLS already limits to visible pieces; the filters keep the intent explicit.
