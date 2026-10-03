@@ -17,9 +17,11 @@ export async function proxy(request: NextRequest) {
       },
     },
   });
-  const { data } = await sb.auth.getUser();
+  // getClaims verifies the JWT locally (refreshing it if expired) instead of
+  // asking the Auth server on every navigation like getUser did.
+  const { data } = await sb.auth.getClaims();
   const path = request.nextUrl.pathname;
-  if (!data.user && !path.startsWith("/login") && !path.startsWith("/auth")) {
+  if (!data?.claims && !path.startsWith("/login") && !path.startsWith("/auth")) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
   return response;

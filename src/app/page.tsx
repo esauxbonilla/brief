@@ -6,8 +6,9 @@ import { thisWeekPending } from "@/lib/pieces";
 
 export default async function Home() {
   await connection();
-  const session = await repo.clientSession();
-  if (!session) redirect((await repo.agencySession()) ? "/agencia" : "/login");
+  // Both lookups at once: an agency user opening the app doesn't wait for two rounds.
+  const [session, agency] = await Promise.all([repo.clientSession(), repo.agencySession()]);
+  if (!session) redirect(agency?.clients.length ? `/agencia/${agency.clients[0].id}` : agency ? "/agencia" : "/login");
   const pieces = await repo.clientPieces(session.client.id);
   const now = new Date();
   const first = thisWeekPending(pieces, now, session.client.tz)[0];
