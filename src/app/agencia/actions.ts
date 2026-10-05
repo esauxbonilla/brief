@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { repo } from "@/lib/data";
-import { EDIT_DAYS } from "@/lib/constants";
+import { EDIT_DAYS, MAX_TITLE_WORDS } from "@/lib/constants";
 import { addDays, computeRecordDue, DEADLINE_TIME, DEFAULT_BUFFER_DAYS, dayIndex, dayKey, hhmm, shortLabel, zonedTime } from "@/lib/dates";
 import { parseScript } from "@/lib/script-parse";
 import type { Channel, PieceFull } from "@/lib/types";
@@ -53,7 +53,7 @@ export async function savePiece(_: SaveState, form: FormData): Promise<SaveState
   if (id) await ownPiece(id);
 
   const title = String(form.get("title") ?? "").trim().replace(/\s+/g, " ") || UNTITLED;
-  if (title.split(" ").length > 5) return { error: "El título debe tener 5 palabras como máximo." };
+  if (title.split(" ").length > MAX_TITLE_WORDS) return { error: `El título debe tener ${MAX_TITLE_WORDS} palabras como máximo.` };
   const channel = (String(form.get("channel") ?? "") || "reel") as Channel;
   const rawEdit = String(form.get("edit_days") ?? "");
   const editDays = rawEdit === "" ? EDIT_DAYS[channel] : Math.max(0, Number(rawEdit) | 0);

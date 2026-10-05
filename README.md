@@ -79,7 +79,7 @@ uploads        id, piece_id, file_url, uploaded_at
 - `record_due_at = publish_at − edit_days − buffer` (buffer por defecto 1 día). **Se calcula al crear la pieza**; el cliente nunca lo piensa.
 - **Estado derivado `atrasado`** (no se guarda, no lo elige nadie): `status IN ('grabar','rehacer') AND now() > record_due_at`.
 - **Responsable** se deriva: `status === 'grabar'` → cliente; cualquier otro → agencia.
-- `title` máximo 5 palabras (validar en el panel de la agencia).
+- `title` máximo 10 palabras (validar en el panel de la agencia).
 - RLS: un cliente solo ve sus `pieces`.
 
 ## Reglas de negocio clave
@@ -228,7 +228,7 @@ El cliente no graba una pieza por día: graba 6 de corrido un domingo. Esta es l
 ---
 
 ## Panel agencia (no diseñado — implementar simple)
-- CRUD de piezas por cliente (fecha, canal, título ≤5 palabras, estado, formato, objetivo, gancho, tomas).
+- CRUD de piezas por cliente (fecha, canal, título ≤10 palabras, estado, formato, objetivo, gancho, tomas).
 - **Pegar guión desde Google Docs**: dividir automáticamente en bloques por encabezados (`Gancho`, `Problema`, `Solución`, `Prueba social`, `CTA`); cada párrafo = una línea.
 - Subir referencias e indicar a qué bloque pertenecen; marcar si se le pide material al cliente.
 - Al crear la pieza: elegir `publish_at` y `edit_days` → se calcula `record_due_at` (editable).

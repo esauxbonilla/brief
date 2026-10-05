@@ -47,3 +47,6 @@ export const GENERIC: Record<Channel, { format: string; shots: string[] }> = {
   carrusel: { format: "Carrusel · 8 diapositivas", shots: ["Texto redactado por la agencia", "Diseño de diapositivas", "Revisión final"] },
   extra: { format: "", shots: [] },
 };
+
+/** Maximum words in a piece title (also enforced by a DB check). */
+export const MAX_TITLE_WORDS = 10;
