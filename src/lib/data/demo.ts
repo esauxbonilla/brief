@@ -182,16 +182,16 @@ export const demoRepo: Repo = {
     piece(id).received_at = new Date().toISOString();
   },
   async setBlocks(pieceId, blocks) {
+    // Update in place by position: ids, "recorded" checks and references survive edits.
     const d = db();
-    const old = d.blocks.filter((b) => b.piece_id === pieceId);
-    d.blocks = d.blocks.filter((b) => b.piece_id !== pieceId);
-    const fresh = blocks.map((b, i) => ({ id: uid("block"), piece_id: pieceId, position: i, label: b.label, duration: b.duration, lines: b.lines, note: b.note, recorded: false }));
-    d.blocks.push(...fresh);
-    // Keep references attached to the block in the same position.
-    for (const r of d.refs.filter((r) => r.piece_id === pieceId && r.block_id)) {
-      const pos = old.find((b) => b.id === r.block_id)?.position;
-      r.block_id = pos != null && fresh[pos] ? fresh[pos].id : null;
-    }
+    const old = d.blocks.filter((b) => b.piece_id === pieceId).sort((x, y) => x.position - y.position);
+    blocks.forEach((b, i) => {
+      if (old[i]) Object.assign(old[i], { position: i, label: b.label, duration: b.duration, lines: b.lines, note: b.note });
+      else d.blocks.push({ id: uid("block"), piece_id: pieceId, position: i, label: b.label, duration: b.duration, lines: b.lines, note: b.note, recorded: false });
+    });
+    const gone = new Set(old.slice(blocks.length).map((b) => b.id));
+    d.blocks = d.blocks.filter((b) => !gone.has(b.id));
+    for (const r of d.refs) if (r.block_id && gone.has(r.block_id)) r.block_id = null;
   },
   async addReference(input) {
     db().refs.push({ ...input, id: uid("ref"), uploaded_url: null });

@@ -1,11 +1,11 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
+import { useActionState, useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import { CHANNEL_KEYS, CHANNELS, EDIT_DAYS, GENERIC, MAX_TITLE_WORDS } from "@/lib/constants";
 import { addDays, DEFAULT_BUFFER_DAYS, dayKey, SHOW_DEADLINE_TIME } from "@/lib/dates";
 import { displayStatus } from "@/lib/pieces";
 import { firstUrl, siteName, withoutUrls } from "@/lib/links";
-import { parseScript } from "@/lib/script-parse";
+import { blockToBox } from "@/lib/script-parse";
 import { supabaseBrowser } from "@/lib/supabase/browser";
 import { isDemo } from "@/lib/supabase/config";
 import type { Channel, PieceFull } from "@/lib/types";
@@ -180,50 +180,70 @@ export function PieceForm({ init }: { init: PieceFormInit }) {
   );
 }
 
+/**
+ * The script as boxes. One box is fine; add more to split it. No labels: whatever
+ * you want to call each part, write it inside the box. Saves itself as you type.
+ */
 export function ScriptEditor({ piece }: { piece: PieceFull }) {
-  const [raw, setRaw] = useState("");
-  const preview = useMemo(() => parseScript(raw), [raw]);
-  const { pending, run } = useAct();
+  const [boxes, setBoxes] = useState<string[]>(() => (piece.blocks.length ? piece.blocks.map(blockToBox) : [""]));
+  const [status, setStatus] = useState<"idle" | "dirty" | "saved" | "error">("idle");
+  const [saving, startSave] = useTransition();
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => () => clearTimeout(timer.current), []);
+
+  const update = (next: string[]) => {
+    setBoxes(next);
+    setStatus("dirty");
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
+      startSave(async () => {
+        try {
+          await A.saveScriptBoxes(piece.id, next);
+          setStatus("saved");
+        } catch {
+          setStatus("error");
+        }
+      });
+    }, 800);
+  };
+
+  const label = saving || status === "dirty" ? "Guardando…" : status === "saved" ? "Guardado ✓" : status === "error" ? "No se pudo guardar. Revisa tu conexión." : null;
+
   return (
-    <div className="flex flex-col gap-3">
-      {piece.blocks.length > 0 && (
-        <div className="flex flex-col gap-2">
-          {piece.blocks.map((b, i) => (
-            <div key={b.id} className="rounded-xl bg-surface-2 px-3.5 py-3">
-              <div className="mb-1.5 flex items-center gap-2 text-[11px] font-semibold tracking-[0.08em] uppercase">
-                <span className="font-mono text-text-4">{String(i + 1).padStart(2, "0")}</span>
-                <span className="text-text-2b">{b.label}</span>
-                {b.duration && <span className="font-normal tracking-normal normal-case text-text-3">{b.duration}</span>}
-                {b.recorded && <span className="text-green">✓ grabado</span>}
-              </div>
-              {b.lines.map((l, j) => <p key={j} className="m-0 text-sm leading-[1.45] text-text-2">{l}</p>)}
-              {b.note && <p className="m-0 mt-1 text-xs text-text-3">Nota: {b.note}</p>}
+    <div className="flex flex-col gap-2.5">
+      {boxes.map((text, i) => {
+        const rec = piece.blocks[i]?.recorded;
+        return (
+          <div key={i} className="flex flex-col gap-1.5 rounded-xl bg-surface-2 px-3 pt-2.5 pb-3">
+            <div className="flex items-center gap-2 text-[11px]">
+              <span className="font-mono text-text-4">{String(i + 1).padStart(2, "0")}</span>
+              {rec && <span className="font-semibold text-green">✓ grabado</span>}
+              {boxes.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => (!text.trim() || confirm("¿Quitar este cuadro?")) && update(boxes.filter((_, j) => j !== i))}
+                  className="ml-auto cursor-pointer border-none bg-transparent p-0 text-xs text-text-3 hover:text-red"
+                >
+                  Quitar
+                </button>
+              )}
             </div>
-          ))}
-        </div>
-      )}
-      <F label={piece.blocks.length ? "Reemplazar guion: pega el texto del Google Doc" : "Pega el guion desde Google Docs"} hint="Opcional: separa en bloques con Gancho · Problema · Solución · Prueba social · CTA">
-        <textarea
-          value={raw}
-          onChange={(e) => setRaw(e.target.value)}
-          rows={8}
-          placeholder={"Pega el guion tal cual.\n\nSi quieres bloques, usa encabezados:\nGancho (5 s)\n¿Sigues sin…?\nNota: mira a cámara"}
-          className={`${field} py-2.5 font-mono text-[13px]`}
-          style={fieldStyle}
-        />
-      </F>
-      {raw.trim() && (
-        <div className="flex flex-wrap items-center gap-3 text-[13px]">
-          {preview.length > 0 && (
-            <span className="text-text-2c">
-              {preview.length === 1 ? "1 bloque" : `${preview.length} bloques`}: {preview.map((b) => `${b.label} (${b.lines.length} ${b.lines.length === 1 ? "línea" : "líneas"})`).join(" · ")}
-            </span>
-          )}
-          <Btn kind="primary" disabled={!preview.length || pending} onClick={() => run(async () => { await A.saveScript(piece.id, raw); setRaw(""); })}>
-            Guardar guion
-          </Btn>
-        </div>
-      )}
+            <textarea
+              value={text}
+              onChange={(e) => update(boxes.map((t, j) => (j === i ? e.target.value : t)))}
+              rows={Math.min(24, Math.max(3, text.split("\n").length + 1))}
+              placeholder={i === 0 ? "Pega o escribe el guion aquí." : "Siguiente parte del guion"}
+              className={`${field} resize-y py-2 text-sm leading-[1.5]`}
+              style={fieldStyle}
+            />
+          </div>
+        );
+      })}
+      <div className="flex flex-wrap items-center gap-3">
+        <Btn onClick={() => update([...boxes, ""])}>+ Añadir cuadro</Btn>
+        <span className="text-xs text-text-3">Para dividir al pegar, pon una línea con --- entre partes.</span>
+      </div>
+      {label && <div className="text-[13px]" style={{ color: status === "error" ? "#FF5C5C" : "#7C8087" }} aria-live="polite">{label}</div>}
     </div>
   );
 }
@@ -335,7 +355,7 @@ export function References({ piece }: { piece: PieceFull }) {
           <F label="Bloque del guion">
             <select name="block_id" className={`${field} h-10`} style={fieldStyle} defaultValue="">
               <option value="">— Ninguno —</option>
-              {piece.blocks.map((b, i) => <option key={b.id} value={b.id}>{i + 1}. {b.label}</option>)}
+              {piece.blocks.map((b, i) => <option key={b.id} value={b.id}>Cuadro {i + 1}{b.label ? ` · ${b.label}` : ""}</option>)}
             </select>
           </F>
         </div>

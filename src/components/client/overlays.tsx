@@ -92,7 +92,7 @@ export function ReadingMode({ blocks, open, onClose }: { blocks: ScriptBlock[]; 
           {blocks.map((b, i) => (
             <div key={b.id} className="mb-14 flex flex-col gap-[18px]">
               <span className="text-[13px] font-semibold uppercase tracking-[0.08em] text-amber">
-                {String(i + 1).padStart(2, "0")} · {b.label}
+                {String(i + 1).padStart(2, "0")}{b.label ? ` · ${b.label}` : ""}
               </span>
               {b.lines.map((l, j) => (
                 <p key={j} className="m-0 text-[31px] leading-[1.3] font-semibold text-white" style={{ textWrap: "pretty" }}>{l}</p>

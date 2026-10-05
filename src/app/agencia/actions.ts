@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { repo } from "@/lib/data";
 import { EDIT_DAYS, MAX_TITLE_WORDS } from "@/lib/constants";
 import { addDays, computeRecordDue, DEADLINE_TIME, DEFAULT_BUFFER_DAYS, dayIndex, dayKey, hhmm, shortLabel, zonedTime } from "@/lib/dates";
-import { parseScript } from "@/lib/script-parse";
+import { boxesToBlocks, parseScript } from "@/lib/script-parse";
 import type { Channel, PieceFull } from "@/lib/types";
 
 // Agency actions. RLS restricts writes to the agency's own clients; we also
@@ -210,6 +210,15 @@ export async function reschedule(id: string, publishDay: string) {
   const publish = zonedTime(publishDay, "12:00", tz);
   await repo.reschedule(id, publish.toISOString(), computeRecordDue(publish, p.edit_days, tz).toISOString());
   refresh(p.client_id);
+}
+
+/** The script editor's boxes, saved as typed (autosave). */
+export async function saveScriptBoxes(id: string, texts: string[]) {
+  const p = await ownPiece(id);
+  const blocks = boxesToBlocks(texts);
+  await repo.setBlocks(id, blocks);
+  refresh(p.client_id);
+  return blocks.length;
 }
 
 export async function saveScript(id: string, raw: string) {

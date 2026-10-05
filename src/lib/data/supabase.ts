@@ -160,19 +160,15 @@ export const supabaseRepo: Repo = {
     check(await sb.from("pieces").update({ received_at: new Date().toISOString() }).eq("id", id));
   },
   async setBlocks(pieceId, blocks) {
+    // Update in place by position: ids, "recorded" checks and references survive edits.
     const sb = await supabaseServer();
-    const old = check(await sb.from("script_blocks").select("id, position").eq("piece_id", pieceId)) as { id: string; position: number }[];
-    const refs = check(await sb.from("piece_references").select("id, block_id").eq("piece_id", pieceId).not("block_id", "is", null)) as { id: string; block_id: string }[];
-    const fresh = blocks.length
-      ? (check(await sb.from("script_blocks").insert(blocks.map((b, position) => ({ piece_id: pieceId, position, ...b }))).select("id, position")) as { id: string; position: number }[])
-      : [];
-    // Keep references attached to the block in the same position.
-    for (const r of refs) {
-      const pos = old.find((b) => b.id === r.block_id)?.position;
-      const target = fresh.find((b) => b.position === pos);
-      check(await sb.from("piece_references").update({ block_id: target?.id ?? null }).eq("id", r.id));
+    const old = (check(await sb.from("script_blocks").select("id, position").eq("piece_id", pieceId).order("position")) as { id: string; position: number }[]);
+    await Promise.all(blocks.slice(0, old.length).map(async (b, i) => check(await sb.from("script_blocks").update({ ...b, position: i }).eq("id", old[i].id))));
+    if (blocks.length > old.length) {
+      check(await sb.from("script_blocks").insert(blocks.slice(old.length).map((b, i) => ({ piece_id: pieceId, position: old.length + i, ...b }))));
     }
-    if (old.length) check(await sb.from("script_blocks").delete().in("id", old.map((b) => b.id)));
+    // References of removed boxes are detached by the FK (on delete set null).
+    if (old.length > blocks.length) check(await sb.from("script_blocks").delete().in("id", old.slice(blocks.length).map((b) => b.id)));
   },
   async addReference(input) {
     const sb = await supabaseServer();

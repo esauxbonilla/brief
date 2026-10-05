@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseScript } from "./script-parse";
+import { blockToBox, boxesToBlocks, parseScript } from "./script-parse";
 
 describe("parseScript", () => {
   it("splits by headings, one line per paragraph", () => {
@@ -44,5 +44,22 @@ Comenta “Ramiro”.`;
 
   it("returns no blocks for blank text", () => {
     expect(parseScript("  \n\n ")).toEqual([]);
+  });
+});
+
+describe("editor boxes", () => {
+  it("keeps one box per textarea, no labels, drops empties", () => {
+    expect(boxesToBlocks(["Gancho\nHola a todos\n\nSegunda línea", "  ", "CTA: comenta"])).toEqual([
+      { label: "", duration: null, lines: ["Gancho", "Hola a todos", "Segunda línea"], note: null },
+      { label: "", duration: null, lines: ["CTA: comenta"], note: null },
+    ]);
+  });
+  it("splits a pasted box on --- lines", () => {
+    expect(boxesToBlocks(["uno\n---\ndos\n\n———\ntres"]).map((b) => b.lines)).toEqual([["uno"], ["dos"], ["tres"]]);
+  });
+  it("turns old labelled blocks into plain text", () => {
+    expect(blockToBox({ label: "Gancho", duration: "5 s", lines: ["Hola"], note: "Mira a cámara" })).toBe("Gancho (5 s)\nHola\nNota: Mira a cámara");
+    expect(blockToBox({ label: "Guion", duration: null, lines: ["Hola"], note: null })).toBe("Hola");
+    expect(blockToBox({ label: "", duration: null, lines: ["a", "b"], note: null })).toBe("a\nb");
   });
 });

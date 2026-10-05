@@ -262,14 +262,14 @@ export function GuionTab({ p, onOpenRef, onRead, showCta = true }: { p: PieceFul
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-2.5">
         <div className="flex flex-col gap-0.5">
-          <span className="text-[13px] font-semibold">{p.blocks.length} bloques{secs ? ` · unos ${secs} s` : ""}</span>
-          <span className="text-xs text-text-3">{n ? `${n} de ${p.blocks.length} grabados` : "Ninguno grabado todavía"}</span>
+          <span className="text-[13px] font-semibold">{p.blocks.length === 1 ? "Guion" : `${p.blocks.length} partes`}{secs ? ` · unos ${secs} s` : ""}</span>
+          <span className="text-xs text-text-3">{p.blocks.length === 1 ? (n ? "Grabado" : "Sin grabar todavía") : n ? `${n} de ${p.blocks.length} grabadas` : "Ninguna grabada todavía"}</span>
         </div>
         <span className="block h-1 w-24 overflow-hidden rounded-sm bg-[#24262B]">
           <span className="block h-full bg-amber transition-[width] duration-[350ms]" style={{ width: `${Math.round((n / p.blocks.length) * 100)}%` }} />
         </span>
       </div>
-      <div className="text-[13px] leading-[1.45] text-[#9DA1A8]">Graba cada bloque por separado. Si te equivocas, repite solo ese bloque.</div>
+      {p.blocks.length > 1 && <div className="text-[13px] leading-[1.45] text-[#9DA1A8]">Graba cada parte por separado. Si te equivocas, repite solo esa parte.</div>}
       {p.blocks.map((b, i) => (
         <ScriptBlockCard key={b.id} p={p} i={i} onOpenRef={onOpenRef} onToggle={pending ? () => toggleBlock(p.id, b.id) : undefined} />
       ))}
@@ -294,7 +294,7 @@ export function ScriptBlockCard({ p, i, onOpenRef, onToggle, big = false }: { p:
       <div className="flex items-center justify-between">
         <span className="flex items-center gap-2">
           <span className="font-mono text-[11px] text-text-4">{String(i + 1).padStart(2, "0")}</span>
-          <span className="text-[11px] font-semibold uppercase tracking-[0.08em]" style={{ color: d ? "#4FD98A" : "#C9CCD1" }}>{b.label}</span>
+          {b.label && <span className="text-[11px] font-semibold uppercase tracking-[0.08em]" style={{ color: d ? "#4FD98A" : "#C9CCD1" }}>{b.label}</span>}
         </span>
         {b.duration && <span className="text-xs text-text-3">{b.duration}</span>}
       </div>
@@ -368,7 +368,7 @@ export function RefsTab({ p, onOpenRef }: { p: PieceFull; onOpenRef: (r: PieceRe
                 <div className="flex flex-col gap-1 px-3.5 pt-3 pb-3.5">
                   <span className="text-sm font-semibold">{withoutUrls(r.title) || "Referencia"}</span>
                   {note && <span className="text-[13px] leading-[1.4] text-[#9DA1A8]">{note}</span>}
-                  {blockNo(r) && <span className="mt-1 text-xs text-blue">Se usa en el bloque {blockNo(r)}</span>}
+                  {blockNo(r) && <span className="mt-1 text-xs text-blue">Se usa en la parte {blockNo(r)}</span>}
                   {url && (
                     <a
                       href={url}
