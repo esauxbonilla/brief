@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useMemo, useRef, useState, type ReactNode } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
 import { CHANNEL_KEYS, CHANNELS, EDIT_DAYS, GENERIC, MAX_TITLE_WORDS } from "@/lib/constants";
 import { addDays, DEFAULT_BUFFER_DAYS, dayKey, SHOW_DEADLINE_TIME } from "@/lib/dates";
 import { displayStatus } from "@/lib/pieces";
@@ -56,8 +56,40 @@ export function PieceForm({ init }: { init: PieceFormInit }) {
     if (!dueTouched && pub) setDue(addDays(pub, -(ed + DEFAULT_BUFFER_DAYS)));
   };
 
+  // Existing pieces save themselves ~0.8 s after you stop typing.
+  const autosave = !!init.id;
+  const formRef = useRef<HTMLFormElement>(null);
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const [saving, startSave] = useTransition();
+  const [saveState, setSaveState] = useState<"idle" | "dirty" | "saved" | "error">("idle");
+  const [saveError, setSaveError] = useState<string | null>(null);
+  useEffect(() => () => clearTimeout(timer.current), []);
+
+  const scheduleSave = () => {
+    if (!autosave) return;
+    setSaveState("dirty");
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
+      const form = formRef.current;
+      if (!form) return;
+      const fd = new FormData(form);
+      startSave(async () => {
+        try {
+          const res = await A.savePiece({}, fd);
+          setSaveError(res.error ?? null);
+          setSaveState(res.error ? "error" : "saved");
+        } catch {
+          setSaveError("No se pudo guardar. Revisa tu conexión.");
+          setSaveState("error");
+        }
+      });
+    }, 800);
+  };
+
+  const status = saving || saveState === "dirty" ? "Guardando…" : saveState === "saved" ? "Guardado ✓" : null;
+
   return (
-    <form action={action} className="flex flex-col gap-4">
+    <form ref={formRef} action={action} onChange={scheduleSave} className="flex flex-col gap-4">
       {init.id && <input type="hidden" name="id" value={init.id} />}
       <input type="hidden" name="client_id" value={init.client_id} />
       <div className="grid gap-4 sm:grid-cols-[200px_1fr]">
@@ -98,7 +130,7 @@ export function PieceForm({ init }: { init: PieceFormInit }) {
           <F label="Días de edición">
             <input type="number" min={0} max={60} name="edit_days" value={editDays} onChange={(e) => { const n = Number(e.target.value) || 0; setEditDays(n); recalc(publish, n); }} className={`${field} h-10`} style={fieldStyle} />
           </F>
-          <F label={SHOW_DEADLINE_TIME ? "Grabar antes del (20:00)" : "Grabar el"} hint={dueTouched ? <button type="button" className="cursor-pointer border-none bg-transparent p-0 text-xs text-amber" onClick={() => { setDueTouched(false); setDue(addDays(publish, -(editDays + DEFAULT_BUFFER_DAYS))); }}>recalcular</button> : "calculada"}>
+          <F label={SHOW_DEADLINE_TIME ? "Grabar antes del (20:00)" : "Grabar el"} hint={dueTouched ? <button type="button" className="cursor-pointer border-none bg-transparent p-0 text-xs text-amber" onClick={() => { setDueTouched(false); setDue(addDays(publish, -(editDays + DEFAULT_BUFFER_DAYS))); scheduleSave(); }}>recalcular</button> : "calculada"}>
             <input type="date" name="record_due_date" value={due} onChange={(e) => { setDue(e.target.value); setDueTouched(true); }} className={`${field} h-10`} style={fieldStyle} />
           </F>
         </div>
@@ -127,12 +159,16 @@ export function PieceForm({ init }: { init: PieceFormInit }) {
           <textarea name="notes" defaultValue={init.notes} rows={6} className={`${field} py-2.5`} style={fieldStyle} />
         </F>
       </div>
-      {state.error && <span className="text-[13px] text-red">{state.error}</span>}
-      <div>
-        <button disabled={pending || words > MAX_TITLE_WORDS} className="h-10 cursor-pointer rounded-[10px] border-none bg-amber px-5 text-sm font-semibold text-amber-ink hover:bg-amber-hover disabled:opacity-50">
-          {pending ? "Guardando…" : init.id ? "Guardar cambios" : "Crear borrador"}
-        </button>
-      </div>
+      {(autosave ? saveError : state.error) && <span className="text-[13px] text-red">{autosave ? saveError : state.error}</span>}
+      {autosave ? (
+        <div className="h-5 text-[13px] text-text-3" aria-live="polite">{status}</div>
+      ) : (
+        <div>
+          <button disabled={pending || words > MAX_TITLE_WORDS} className="h-10 cursor-pointer rounded-[10px] border-none bg-amber px-5 text-sm font-semibold text-amber-ink hover:bg-amber-hover disabled:opacity-50">
+            {pending ? "Guardando…" : "Crear borrador"}
+          </button>
+        </div>
+      )}
     </form>
   );
 }
@@ -398,7 +434,7 @@ export function PieceEditor({ piece: p, tz, now }: { piece: PieceFull; tz: strin
 
       <Section title="Brief">
         <PieceForm
-          key={p.id + p.publish_at + p.record_due_at + p.channel + p.title}
+          key={p.id}
           init={{
             id: p.id, client_id: p.client_id, channel: p.channel, title: p.title === "Sin título" ? "" : p.title, format: p.format ?? "", objective: p.objective ?? "",
             hook: p.hook ?? "", notes: p.notes.join("\n"), shots: p.shots.map((x) => x.text).join("\n"),
