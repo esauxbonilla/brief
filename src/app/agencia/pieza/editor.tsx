@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useMemo, useRef, useState, type ReactNode } from "react";
-import { CHANNEL_KEYS, CHANNELS, EDIT_DAYS, GENERIC } from "@/lib/constants";
+import { CHANNEL_KEYS, CHANNELS, EDIT_DAYS, GENERIC, MAX_TITLE_WORDS } from "@/lib/constants";
 import { addDays, DEFAULT_BUFFER_DAYS, dayKey, SHOW_DEADLINE_TIME } from "@/lib/dates";
 import { displayStatus } from "@/lib/pieces";
 import { firstUrl, siteName, withoutUrls } from "@/lib/links";
@@ -79,7 +79,7 @@ export function PieceForm({ init }: { init: PieceFormInit }) {
             {CHANNEL_KEYS.map((k) => <option key={k} value={k}>{CHANNELS[k].name}</option>)}
           </select>
         </F>
-        <F label="Título" hint={<span style={{ color: words > 5 ? "#FF5C5C" : undefined }}>{words}/5 palabras</span>}>
+        <F label="Título" hint={<span style={{ color: words > MAX_TITLE_WORDS ? "#FF5C5C" : undefined }}>{words}/{MAX_TITLE_WORDS} palabras</span>}>
           <input name="title" value={title} placeholder="Sin título" onChange={(e) => setTitle(e.target.value)} className={`${field} h-10`} style={fieldStyle} />
         </F>
       </div>
@@ -129,7 +129,7 @@ export function PieceForm({ init }: { init: PieceFormInit }) {
       </div>
       {state.error && <span className="text-[13px] text-red">{state.error}</span>}
       <div>
-        <button disabled={pending || words > 5} className="h-10 cursor-pointer rounded-[10px] border-none bg-amber px-5 text-sm font-semibold text-amber-ink hover:bg-amber-hover disabled:opacity-50">
+        <button disabled={pending || words > MAX_TITLE_WORDS} className="h-10 cursor-pointer rounded-[10px] border-none bg-amber px-5 text-sm font-semibold text-amber-ink hover:bg-amber-hover disabled:opacity-50">
           {pending ? "Guardando…" : init.id ? "Guardar cambios" : "Crear borrador"}
         </button>
       </div>
