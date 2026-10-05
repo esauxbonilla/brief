@@ -53,3 +53,34 @@ export function parseScript(text: string): ParsedBlock[] {
   }
   return blocks;
 }
+
+/** A line with only dashes/underscores (---, ___, ——) splits a box in two when pasting. */
+const SEPARATOR = /^\s*(?:-{3,}|_{3,}|—{2,}|–{2,})\s*$/;
+
+/**
+ * The editor's boxes, as typed: no labels, each non-empty paragraph is a line.
+ * Empty boxes are dropped and "---" lines split a box into several.
+ */
+export function boxesToBlocks(texts: string[]): ParsedBlock[] {
+  const out: ParsedBlock[] = [];
+  for (const text of texts) {
+    let cur: string[] = [];
+    const flush = () => {
+      if (cur.length) out.push({ label: "", duration: null, lines: cur, note: null });
+      cur = [];
+    };
+    for (const raw of text.replace(/\r\n?/g, "\n").replace(/ /g, " ").split("\n")) {
+      if (SEPARATOR.test(raw)) flush();
+      else if (raw.trim()) cur.push(raw.trim());
+    }
+    flush();
+  }
+  return out;
+}
+
+/** Text for an editor box from a stored block (older blocks keep their label as the first line). */
+export function blockToBox(b: { label: string; duration: string | null; lines: string[]; note: string | null }): string {
+  const head = b.label && b.label !== "Guion" ? [b.duration ? `${b.label} (${b.duration})` : b.label] : [];
+  const tail = b.note ? [`Nota: ${b.note}`] : [];
+  return [...head, ...b.lines, ...tail].join("\n");
+}
