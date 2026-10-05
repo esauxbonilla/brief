@@ -24,6 +24,9 @@ export interface PieceInput {
   publish_at: string;
   edit_days: number;
   record_due_at: string;
+  /** Only sent when the form has the field (content pieces). */
+  final_url?: string | null;
+  caption?: string | null;
 }
 
 export interface ReferenceInput {
@@ -53,6 +56,8 @@ export interface Repo {
   // Client side — only visible pieces, only allowed transitions.
   clientPieces(clientId: string): Promise<PieceFull[]>;
   setRecorded(pieceId: string, recorded: boolean): Promise<Status>;
+  /** "Ya lo publiqué" (listo → publicado) and its undo. */
+  setPublished(pieceId: string, published: boolean): Promise<Status>;
   toggleShot(shotId: string, done: boolean): Promise<void>;
   toggleBlock(blockId: string, recorded: boolean): Promise<void>;
   addUpload(pieceId: string, path: string, name: string): Promise<Upload>;

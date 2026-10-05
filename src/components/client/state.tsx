@@ -7,6 +7,8 @@ import { supabaseBrowser } from "@/lib/supabase/browser";
 import { addDays, dayIndex, dayKey, DEADLINE_TIME, zonedTime, type DayKey } from "@/lib/dates";
 import type { Agency, Channel, Client, PieceFull, Status } from "@/lib/types";
 
+export type Mode = "grabar" | "publicar";
+
 export type UploadState = { state: "uploading" } | { state: "done"; at: string } | { state: "error"; retry: () => void };
 
 interface Toast {
@@ -42,6 +44,10 @@ interface Ctx {
   selectedId: string | null;
   select: (id: string | null) => void;
   markRecorded: (id: string) => void;
+  /** Calendar lens: by recording date or by publish date. */
+  mode: Mode;
+  setMode: (m: Mode) => void;
+  markPublished: (id: string) => void;
   toggleShot: (pieceId: string, shotId: string) => void;
   toggleBlock: (pieceId: string, blockId: string) => void;
   uploadReference: (pieceId: string, refId: string, file: File) => void;
@@ -87,6 +93,7 @@ export function ClientState({
   const [pieces, setPieces] = useState(initialPieces);
   const [now, setNow] = useState(() => new Date(serverNow));
   const [filter, setFilter] = useState<Channel | "all">("all");
+  const [mode, setMode] = useState<Mode>("grabar");
   const [selectedId, select] = useState<string | null>(initialSelected ?? null);
   const [uploads, setUploads] = useState<Record<string, UploadState>>({});
   const [toast, setToast] = useState<Toast | null>(null);
@@ -142,6 +149,21 @@ export function ClientState({
     showToast(`«${p.title}» marcado como ${p.channel === "extra" ? "hecho" : "grabado"}`, () => {
       patch(id, (x) => ({ ...x, status: prev }));
       actions.setRecorded(id, false).catch(fail);
+    });
+  }, [readOnly, blocked, pieces, patch, showToast, fail]);
+
+  const markPublished = useCallback((id: string) => {
+    if (readOnly) return blocked();
+    const p = pieces.find((x) => x.id === id);
+    if (!p || p.status !== "listo") return;
+    patch(id, (x) => ({ ...x, status: "publicado", published_at: new Date().toISOString() }));
+    actions.setPublished(id, true).catch((e) => {
+      patch(id, (x) => ({ ...x, status: "listo", published_at: null }));
+      fail(e);
+    });
+    showToast(`«${p.title}» marcado como publicado`, () => {
+      patch(id, (x) => ({ ...x, status: "listo", published_at: null }));
+      actions.setPublished(id, false).catch(fail);
     });
   }, [readOnly, blocked, pieces, patch, showToast, fail]);
 
@@ -213,8 +235,8 @@ export function ClientState({
 
   const value = useMemo<Ctx>(() => ({
     client, agency, tz: client.tz, now, pieces, base, readOnly, blocked, edit, byId, filter, setFilter, selectedId, select,
-    markRecorded, toggleShot, toggleBlock, uploadReference, uploads, toast, showToast, dismissToast,
-  }), [client, agency, now, pieces, base, readOnly, blocked, edit, byId, filter, selectedId, markRecorded, toggleShot, toggleBlock, uploadReference, uploads, toast, showToast, dismissToast]);
+    markRecorded, mode, setMode, markPublished, toggleShot, toggleBlock, uploadReference, uploads, toast, showToast, dismissToast,
+  }), [client, agency, now, pieces, base, readOnly, blocked, edit, byId, filter, selectedId, markRecorded, mode, markPublished, toggleShot, toggleBlock, uploadReference, uploads, toast, showToast, dismissToast]);
 
   return <C.Provider value={value}>{children}</C.Provider>;
 }

@@ -4,8 +4,9 @@ import { useRef, useState } from "react";
 import { firstUrl, siteName, withoutUrls } from "@/lib/links";
 import { CHANNELS, isTask } from "@/lib/constants";
 import { dayKey, dayMonth, hhmm, shortLabel, urgency } from "@/lib/dates";
-import { cardStyle, isClientsTurn, isPending } from "@/lib/pieces";
+import { isClientsTurn, isPending } from "@/lib/pieces";
 import type { PieceFull, PieceReference } from "@/lib/types";
+import { useLens } from "./lens";
 import { ImageViewer, ReadingMode } from "./overlays";
 import { useApp } from "./state";
 import { AgencyAvatar, ClientAvatar, Pill, SectionLabel, Stepper, UrgencyText } from "./ui";
@@ -25,11 +26,12 @@ export function scriptSeconds(p: PieceFull) {
 /** Channel, status pill, title and who has the ball. */
 export function DetailHeader({ p, variant }: { p: PieceFull; variant: Variant }) {
   const { now, tz, client, agency } = useApp();
-  const st = cardStyle(p, now, tz);
+  const lens = useLens();
+  const st = lens.style(p);
   const ch = CHANNELS[p.channel];
-  const mine = isClientsTurn(p);
+  const mine = lens.mine(p);
   const pill = mine ? { bg: st.pillBg === "#F5B83D1F" ? "#F5B83D" : st.pillBg, fg: st.pillBg === "#F5B83D1F" ? "#1A1205" : st.pillFg } : { bg: st.pillBg, fg: st.pillFg };
-  const u = urgency(p.record_due_at, now, tz);
+  const u = urgency(lens.dueOf(p), now, tz);
 
   if (variant === "desktop") {
     return (
@@ -41,7 +43,7 @@ export function DetailHeader({ p, variant }: { p: PieceFull; variant: Variant })
         <h2 className="m-0 text-2xl leading-[1.15] font-semibold tracking-[-0.015em]" style={{ textWrap: "balance" }}>{p.title}</h2>
         <div className="flex items-center gap-2 text-[13px] text-text-2c">
           {mine ? <ClientAvatar initials={client.initials} size={20} /> : <AgencyAvatar initials={agency.initials} size={20} />}
-          <span>{mine ? (isTask(p) ? "Te toca a ti" : "Te toca a ti grabarlo") : `Lo tiene ${agency.name}`}</span>
+          <span>{mine ? (isTask(p) ? "Te toca a ti" : lens.publish ? "Te toca a ti publicarlo" : "Te toca a ti grabarlo") : p.status === "publicado" ? "Ya está publicado" : `Lo tiene ${agency.name}`}</span>
         </div>
       </div>
     );
@@ -62,7 +64,7 @@ export function DetailHeader({ p, variant }: { p: PieceFull; variant: Variant })
               <UrgencyText u={u} size={13} />
             </>
           ) : (
-            <span>Lo tiene {agency.name} · se publica el {shortLabel(dayKey(p.publish_at, tz))}</span>
+            <span>{p.status === "publicado" ? "Publicado" : `Lo tiene ${agency.name}`} · se publica el {shortLabel(dayKey(p.publish_at, tz))}</span>
           )}
         </span>
       </div>
@@ -474,4 +476,70 @@ export function useDetailOverlays(p: PieceFull | undefined) {
     </>
   );
   return { openRef: setViewer, openReading: () => setReading(true), overlays };
+}
+
+/**
+ * Publish view: the finished piece (Drive link), the text to paste, the day it
+ * goes out and "Ya lo publiqué". Pieces not ready yet just say so.
+ */
+export function PublishCard({ p }: { p: PieceFull }) {
+  const { now, tz, markPublished, showToast, agency } = useApp();
+  const lens = useLens();
+  const ready = p.status === "listo";
+  const done = p.status === "publicado";
+  const u = urgency(lens.dueOf(p), now, tz);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(p.caption ?? "");
+      showToast("Texto copiado");
+    } catch {
+      showToast("No se pudo copiar. Mantén presionado el texto para copiarlo.");
+    }
+  };
+  return (
+    <div
+      className="flex flex-col gap-3 rounded-xl border p-3.5"
+      style={{ borderColor: ready ? "rgba(245,184,61,0.55)" : done ? "rgba(79,217,138,0.35)" : "rgba(255,255,255,0.08)", background: ready ? "#1E180C" : done ? "#121A14" : "#16171A" }}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <SectionLabel>Para publicar</SectionLabel>
+        {ready ? <UrgencyText u={u} size={12} /> : done ? <span className="text-xs font-semibold text-green">Publicado ✓</span> : null}
+      </div>
+      <div className="text-sm" style={{ color: ready ? "#FFF4DE" : "#D4D6DA" }}>
+        Se publica el <strong className="font-semibold">{shortLabel(dayKey(p.publish_at, tz))}</strong>
+      </div>
+      {!ready && !done ? (
+        <div className="text-[13px] leading-[1.45] text-text-3">{agency.name} aún está preparando el final. Cuando esté listo te aparecerá aquí para publicarlo.</div>
+      ) : (
+        <>
+          {p.final_url ? (
+            <a
+              href={p.final_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex h-11 items-center justify-center rounded-[10px] border text-sm font-semibold no-underline hover:bg-white/5"
+              style={{ borderColor: "rgba(255,255,255,0.14)", color: "#E8E9EB" }}
+            >
+              Abrir el final ↗
+            </a>
+          ) : (
+            <div className="text-[13px] text-text-3">{agency.name} aún no ha puesto el link del final.</div>
+          )}
+          {p.caption && (
+            <div className="flex flex-col gap-2">
+              <div className="max-h-48 overflow-y-auto rounded-lg bg-black/25 p-3 text-[13px] leading-[1.5] whitespace-pre-wrap text-text-2">{p.caption}</div>
+              <button onClick={copy} className="h-10 cursor-pointer rounded-[10px] border bg-transparent text-sm font-medium text-text hover:bg-white/5" style={{ borderColor: "rgba(255,255,255,0.14)" }}>
+                Copiar texto
+              </button>
+            </div>
+          )}
+          {ready && (
+            <button onClick={() => markPublished(p.id)} className="press h-12 cursor-pointer rounded-[12px] border-none bg-amber text-[15px] font-semibold text-amber-ink hover:bg-amber-hover">
+              Ya lo publiqué
+            </button>
+          )}
+        </>
+      )}
+    </div>
+  );
 }

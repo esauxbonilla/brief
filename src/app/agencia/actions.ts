@@ -79,6 +79,8 @@ export async function savePiece(_: SaveState, form: FormData): Promise<SaveState
     publish_at: zonedTime(publishDay, "12:00", tz).toISOString(),
     record_due_at: zonedTime(dueDay, DEADLINE_TIME, tz).toISOString(),
     edit_days: editDays,
+    ...(form.has("final_url") ? { final_url: text(form.get("final_url")) } : {}),
+    ...(form.has("caption") ? { caption: String(form.get("caption") ?? "").trim() || null } : {}),
     });
   } catch (e) {
     // Show the problem next to the form instead of crashing the page.

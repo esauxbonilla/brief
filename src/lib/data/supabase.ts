@@ -74,6 +74,10 @@ export const supabaseRepo: Repo = {
     const sb = await supabaseServer();
     return check(await sb.rpc("client_set_recorded", { pid: pieceId, recorded }));
   },
+  async setPublished(pieceId, published) {
+    const sb = await supabaseServer();
+    return check(await sb.rpc("client_set_published", { pid: pieceId, published }));
+  },
   async toggleShot(shotId, done) {
     const sb = await supabaseServer();
     check(await sb.rpc("client_toggle_shot", { sid: shotId, value: done }));

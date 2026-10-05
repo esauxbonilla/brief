@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { addDays, computeRecordDue, DEADLINE_TIME, dayKey, hhmm, SHOW_DEADLINE_TIME, urgency, weekStart, zonedTime } from "./dates";
-import { cardStyle, displayStatus, isOverdue, isVisibleToClient, sessionQueue, thisWeekPending, tier } from "./pieces";
+import { cardStyle, displayStatus, inPublishView, isOverdue, isPublishOverdue, isToPublish, isVisibleToClient, publishCardStyle, publishTier, sessionQueue, thisWeekPending, thisWeekToPublish, tier } from "./pieces";
 import type { Piece } from "./types";
 
 const TZ = "America/Mexico_City";
@@ -110,5 +110,32 @@ describe("piece rules", () => {
     expect(tier(piece({ record_due_at: due("2026-10-12").toISOString() }), NOW, TZ)).toBe("later");
     expect(tier(piece({ status: "edicion" }), NOW, TZ)).toBe("context");
     expect(cardStyle(piece({ record_due_at: due("2026-09-29").toISOString() }), NOW, TZ).bg).toBe("#2A1214");
+  });
+});
+
+describe("publish view", () => {
+  const pub = (key: string, status: Piece["status"] = "listo", channel: Piece["channel"] = "reel") =>
+    piece({ id: key + status, status, channel, publish_at: zonedTime(key, "12:00", TZ).toISOString() });
+
+  it("only ready content can be published; tasks never", () => {
+    expect(isToPublish(pub("2026-10-02"))).toBe(true);
+    expect(isToPublish(pub("2026-10-02", "edicion"))).toBe(false);
+    expect(isToPublish(pub("2026-10-02", "listo", "extra"))).toBe(false);
+    expect(inPublishView(pub("2026-10-02", "listo", "extra"))).toBe(false);
+  });
+
+  it("is overdue only after the publish day ends", () => {
+    expect(isPublishOverdue(pub("2026-10-01"), NOW, TZ)).toBe(false); // today
+    expect(isPublishOverdue(pub("2026-09-30"), NOW, TZ)).toBe(true);
+    expect(isPublishOverdue(pub("2026-09-30", "publicado"), NOW, TZ)).toBe(false);
+  });
+
+  it("week list and tiers follow the publish date", () => {
+    const list = [pub("2026-10-03"), pub("2026-10-01"), pub("2026-10-06"), pub("2026-10-02", "edicion")];
+    expect(thisWeekToPublish(list, NOW, TZ).map((p) => p.publish_at.slice(0, 10))).toEqual(["2026-10-01", "2026-10-03"]);
+    expect(publishTier(pub("2026-10-06"), NOW, TZ)).toBe("later");
+    expect(publishTier(pub("2026-09-29"), NOW, TZ)).toBe("overdue");
+    expect(publishCardStyle(pub("2026-10-02"), NOW, TZ).pill).toBe("Por publicar");
+    expect(publishCardStyle(piece({ status: "grabar" }), NOW, TZ).bg).toBe("#141518");
   });
 });

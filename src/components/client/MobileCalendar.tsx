@@ -4,17 +4,20 @@ import Link from "next/link";
 import { useEffect, useRef, useState, type PointerEvent, type TouchEvent } from "react";
 import { CHANNELS } from "@/lib/constants";
 import { addDays, dayIndex, dayKey, deadlineSuffix, DIAS_LETRA, keyParts, longDayLabel, MESES, shortLabel, urgency, weekRangeLabel, weekStart, type DayKey } from "@/lib/dates";
-import { cardStyle, currentWeek, inWeek, isClientsTurn, isPending, plural, thisWeekPending } from "@/lib/pieces";
+import { currentWeek, inPublishView, inWeek, isPending, plural, thisWeekPending, thisWeekToPublish } from "@/lib/pieces";
 import type { PieceFull } from "@/lib/types";
-import { ActionButtons, BriefTab, DetailHeader, DetailTabs, GuionTab, RefsTab, useDetailOverlays, type Tab } from "./PieceDetail";
+import { useLens } from "./lens";
+import { ActionButtons, BriefTab, DetailHeader, DetailTabs, GuionTab, PublishCard, RefsTab, useDetailOverlays, type Tab } from "./PieceDetail";
 import { AccountMenu, OverdueStrip } from "./shared";
 import { useApp } from "./state";
-import { AgencyAvatar, ChannelChips, ClientAvatar, NewPieceButton, UrgencyText } from "./ui";
+import { AgencyAvatar, ChannelChips, ClientAvatar, ModeToggle, NewPieceButton, UrgencyText } from "./ui";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
 export function MobileCalendar() {
-  const { pieces, now, tz, client, filter, setFilter, select, selectedId, base, edit } = useApp();
+  const { pieces, now, tz, client, filter, setFilter, select, selectedId, base, edit, mode, setMode } = useApp();
+  const lens = useLens();
+  const counts = { grabar: thisWeekPending(pieces, now, tz).length, publicar: thisWeekToPublish(pieces, now, tz).length };
   const today = dayKey(now, tz);
   const thisWeek = currentWeek(now, tz).start;
   const [off, setOff] = useState(0);
@@ -30,8 +33,8 @@ export function MobileCalendar() {
   const ws = addDays(thisWeek, 7 * off);
   const mid = addDays(ws, 3);
   const byDay = new Map<DayKey, PieceFull[]>();
-  for (const p of pieces) {
-    const k = dayKey(p.record_due_at, tz);
+  for (const p of lens.pieces) {
+    const k = lens.dayOf(p);
     byDay.set(k, [...(byDay.get(k) ?? []), p]);
   }
 
@@ -70,9 +73,11 @@ export function MobileCalendar() {
     setSheetOpen(true);
   };
 
-  // Week block: pending this week + what was already recorded this week.
-  const left = thisWeekPending(pieces, now, tz);
-  const recorded = pieces.filter((p) => p.status === "grabado" && inWeek(p, thisWeek, tz));
+  // Week block: pending this week + what was already done this week.
+  const left = lens.week;
+  const recorded = lens.publish
+    ? lens.pieces.filter((p) => p.status === "publicado" && p.published_at && lens.inThisWeek(p))
+    : pieces.filter((p) => p.status === "grabado" && inWeek(p, thisWeek, tz));
   const total = left.length + recorded.length;
   const lastDue = left.at(-1);
 
@@ -103,6 +108,7 @@ export function MobileCalendar() {
           </div>
           <AccountMenu size={36} align="right" />
         </div>
+        <ModeToggle mode={mode} setMode={setMode} counts={counts} full />
 
         <div
           className="overflow-hidden"
@@ -123,7 +129,7 @@ export function MobileCalendar() {
                 const inM = keyParts(k).m === mm.m;
                 const isToday = k === today;
                 const shown = k >= ws && k <= addDays(ws, 6);
-                const hasG = list.some(isPending);
+                const hasG = list.some(lens.mine);
                 return (
                   <button
                     key={k}
@@ -157,7 +163,7 @@ export function MobileCalendar() {
           onKeyDown={(e) => e.key === "Enter" && left[0] && open(left[0].id)}
           className="press flex cursor-pointer flex-col gap-3 rounded-2xl border border-amber bg-amber-block p-4 text-left"
         >
-          <span className="text-[13px]" style={{ color: "#F2DDB0" }}>Lo que tienes que grabar esta semana</span>
+          <span className="text-[13px]" style={{ color: "#F2DDB0" }}>Lo que tienes que {lens.publish ? "publicar" : "grabar"} esta semana</span>
           <span className="flex w-full items-end justify-between gap-3">
             <span className="flex flex-col gap-1.5">
               <span className="flex items-baseline gap-2">
@@ -165,10 +171,10 @@ export function MobileCalendar() {
                 <span className="text-[19px] font-semibold" style={{ color: "#FFF4DE" }}>{plural(left.length, "pieza", "piezas")}</span>
               </span>
               <span className="text-[13px]" style={{ color: "#FFF4DE" }}>
-                {left[0] ? <UrgencyText u={urgency(left[0].record_due_at, now, tz)} size={13} solidPad="2px 8px" /> : <>Entrega: <strong className="font-semibold">nada pendiente</strong></>}
+                {left[0] ? <UrgencyText u={urgency(lens.dueOf(left[0]), now, tz)} size={13} solidPad="2px 8px" /> : <>{lens.publish ? "Publicar" : "Entrega"}: <strong className="font-semibold">nada pendiente</strong></>}
               </span>
             </span>
-            {left.length > 0 && <span className="flex h-10 flex-none items-center rounded-[10px] bg-amber px-3.5 text-sm font-semibold text-amber-ink">Empezar</span>}
+            {left.length > 0 && <span className="flex h-10 flex-none items-center rounded-[10px] bg-amber px-3.5 text-sm font-semibold text-amber-ink">{lens.publish ? "Ver" : "Empezar"}</span>}
           </span>
           {total > 0 && (
             <span className="flex w-full flex-col gap-1.5">
@@ -176,12 +182,14 @@ export function MobileCalendar() {
                 <span className="block h-full rounded-sm bg-amber transition-[width] duration-[400ms]" style={{ width: `${Math.round((recorded.length / total) * 100)}%` }} />
               </span>
               <span className="text-xs" style={{ color: "#C9B38A" }}>
-                {recorded.length ? `${recorded.length} de ${total} grabadas` : "Aún no has grabado ninguna"}
-                {lastDue && ` · última entrega ${shortLabel(dayKey(lastDue.record_due_at, tz))}${deadlineSuffix()}`}
+                {lens.publish
+                  ? recorded.length ? `${recorded.length} de ${total} publicadas` : "Aún no has publicado ninguna"
+                  : recorded.length ? `${recorded.length} de ${total} grabadas` : "Aún no has grabado ninguna"}
+                {lastDue && (lens.publish ? ` · último día ${shortLabel(lens.dayOf(lastDue))}` : ` · última entrega ${shortLabel(dayKey(lastDue.record_due_at, tz))}${deadlineSuffix()}`)}
               </span>
             </span>
           )}
-          {left.length > 1 && (
+          {!lens.publish && left.length > 1 && (
             <Link
               href={`${base}/grabar`}
               onClick={(e) => e.stopPropagation()}
@@ -213,7 +221,7 @@ export function MobileCalendar() {
           {days.map((k) => {
             const list = byDay.get(k) ?? [];
             const isToday = k === today;
-            const hasNow = list.some((p) => isPending(p) && inWeek(p, thisWeek, tz));
+            const hasNow = list.some((p) => lens.mine(p) && lens.inThisWeek(p));
             const { d, dow, m } = keyParts(k);
             return (
               <button
@@ -265,8 +273,9 @@ export function MobileCalendar() {
 
 function WeekCard({ p, onOpen }: { p: PieceFull; onOpen: () => void }) {
   const { now, tz, filter, client, agency } = useApp();
-  const st = cardStyle(p, now, tz, true);
-  const mine = isClientsTurn(p);
+  const lens = useLens();
+  const st = lens.style(p, true);
+  const mine = lens.mine(p);
   const n = p.shots.filter((s) => s.done).length;
   const dim = filter !== "all" && filter !== p.channel;
   return (
@@ -286,8 +295,8 @@ function WeekCard({ p, onOpen }: { p: PieceFull; onOpen: () => void }) {
           <span className="rounded-full px-[9px] py-[3px] text-xs font-semibold" style={{ background: st.pillBg, color: st.pillFg }}>{st.pill}</span>
           {mine && (
             <>
-              <UrgencyText u={urgency(p.record_due_at, now, tz)} size={12} />
-              {p.shots.length > 0 && <span className="text-xs" style={{ color: "#E2C78F" }}>{n} de {p.shots.length} tomas</span>}
+              <UrgencyText u={urgency(lens.dueOf(p), now, tz)} size={12} />
+              {!lens.publish && p.shots.length > 0 && <span className="text-xs" style={{ color: "#E2C78F" }}>{n} de {p.shots.length} tomas</span>}
             </>
           )}
         </div>
@@ -305,6 +314,7 @@ function BottomSheet({ p, open, onClose }: { p: PieceFull | undefined; open: boo
   const y0 = useRef(0);
   const { openRef, openReading, overlays } = useDetailOverlays(p);
   const { edit } = useApp();
+  const lens = useLens();
 
   if (lastId !== p?.id) {
     setLastId(p?.id);
@@ -331,7 +341,7 @@ function BottomSheet({ p, open, onClose }: { p: PieceFull | undefined; open: boo
     setDragY(0);
   };
 
-  const action = p && isPending(p);
+  const action = p && !lens.publish && isPending(p);
   return (
     <>
       <div
@@ -367,7 +377,8 @@ function BottomSheet({ p, open, onClose }: { p: PieceFull | undefined; open: boo
             <div className="flex-none px-[18px] pt-3.5">
               <DetailTabs p={p} tab={tab} setTab={setTab} />
             </div>
-            <div className="no-scrollbar flex flex-1 flex-col overflow-y-auto overscroll-contain px-[18px] pt-[18px] pb-6">
+            <div className="no-scrollbar flex flex-1 flex-col gap-5 overflow-y-auto overscroll-contain px-[18px] pt-[18px] pb-6">
+              {lens.publish && inPublishView(p) && tab === "brief" && <PublishCard p={p} />}
               {tab === "brief" && <BriefTab p={p} variant="mobile" />}
               {tab === "guion" && <GuionTab p={p} onOpenRef={openRef} onRead={openReading} showCta={false} />}
               {tab === "refs" && <RefsTab p={p} onOpenRef={openRef} />}

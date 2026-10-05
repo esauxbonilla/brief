@@ -1,5 +1,5 @@
 import { isTask, STATUS, type DisplayStatus } from "./constants";
-import { addDays, dayKey, weekStart, type DayKey } from "./dates";
+import { addDays, dayKey, weekStart, zonedTime, type DayKey } from "./dates";
 import type { Piece, Status } from "./types";
 
 export const PENDING: Status[] = ["grabar", "rehacer"];
@@ -109,4 +109,65 @@ export function cardStyle(p: Piece, now: Date, tz: string, mobile = false): Card
 
 export function plural(n: number, one: string, many: string) {
   return n === 1 ? one : many;
+}
+
+// ── Publicar ────────────────────────────────────────────────────────────────
+// Same calendar, but by publish date: what goes out each day. The client acts on
+// pieces that are "listo" (the agency delivered the final) and marks them published.
+
+/** Content pieces shown in the publish view (tasks have nothing to publish). */
+export const inPublishView = (p: Pick<Piece, "channel" | "status">) => !isTask(p) && p.status !== "cancelado" && p.status !== "borrador";
+
+export const isToPublish = (p: Pick<Piece, "channel" | "status">) => !isTask(p) && p.status === "listo";
+
+/** A piece can be published until the end of its publish day. */
+export const publishDeadline = (p: Pick<Piece, "publish_at">, tz: string) => zonedTime(dayKey(p.publish_at, tz), "23:59", tz);
+
+export function isPublishOverdue(p: Pick<Piece, "channel" | "status" | "publish_at">, now: Date, tz: string): boolean {
+  return isToPublish(p) && now.getTime() > publishDeadline(p, tz).getTime();
+}
+
+const byPublish = (a: Pick<Piece, "publish_at">, b: Pick<Piece, "publish_at">) =>
+  new Date(a.publish_at).getTime() - new Date(b.publish_at).getTime();
+
+export function thisWeekToPublish<P extends Piece>(pieces: P[], now: Date, tz: string): P[] {
+  const { start, end } = currentWeek(now, tz);
+  return pieces.filter((p) => { const k = dayKey(p.publish_at, tz); return isToPublish(p) && k >= start && k <= end; }).sort(byPublish);
+}
+
+export function overdueToPublish<P extends Piece>(pieces: P[], now: Date, tz: string): P[] {
+  return pieces.filter((p) => isPublishOverdue(p, now, tz)).sort(byPublish);
+}
+
+export function publishTier(p: Piece, now: Date, tz: string): Tier {
+  if (isPublishOverdue(p, now, tz)) return "overdue";
+  if (!isToPublish(p)) return "context";
+  const { start, end } = currentWeek(now, tz);
+  const k = dayKey(p.publish_at, tz);
+  return k >= start && k <= end ? "now" : "later";
+}
+
+/** Card colors by publish tier; the pill names the publishing step. */
+export function publishCardStyle(p: Piece, now: Date, tz: string, mobile = false): CardStyle {
+  const t = publishTier(p, now, tz);
+  const pill = t === "overdue" ? "Sin publicar" : p.status === "listo" ? "Por publicar" : STATUS[p.status].name;
+  if (t !== "context") return { ...cardStyleForTier(t, mobile), pill };
+  // Everything not ready to publish is context here, even if it's still to record.
+  const S = STATUS[p.status];
+  return {
+    bg: "#141518", border: mobile ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.04)", shadow: "none",
+    titleColor: p.status === "publicado" ? "#62666D" : mobile ? "#A9ACB2" : "#9DA1A8", titleWeight: 500,
+    pillBg: p.status === "publicado" ? "rgba(255,255,255,0.05)" : S.color + "1F", pillFg: S.color, pill,
+  };
+}
+
+function cardStyleForTier(t: Exclude<Tier, "context">, mobile: boolean): CardStyle {
+  if (t === "overdue") return { bg: "#2A1214", border: "#FF5C5C", shadow: "0 0 0 3px rgba(255,92,92,0.12)", titleColor: "#FFE3E3", titleWeight: 600, pillBg: "#FF5C5C", pillFg: "#1A0506", pill: "" };
+  if (t === "now") {
+    return {
+      bg: "#2A2110", border: "#F5B83D", shadow: mobile ? "0 0 0 3px rgba(245,184,61,0.12)" : "0 0 0 3px rgba(245,184,61,0.12), 0 6px 18px rgba(0,0,0,0.4)",
+      titleColor: "#FFF4DE", titleWeight: 600, pillBg: "#F5B83D", pillFg: "#1A1205", pill: "",
+    };
+  }
+  return { bg: "#19160F", border: "rgba(245,184,61,0.4)", shadow: "none", titleColor: "#E6DFD0", titleWeight: 600, pillBg: "#F5B83D1F", pillFg: "#F5B83D", pill: "" };
 }

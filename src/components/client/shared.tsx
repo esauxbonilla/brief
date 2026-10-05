@@ -5,14 +5,16 @@ import { useState, useTransition } from "react";
 import { signOut } from "@/app/login/actions";
 import { CHANNELS } from "@/lib/constants";
 import { urgency } from "@/lib/dates";
-import { overduePieces, plural } from "@/lib/pieces";
+import { plural } from "@/lib/pieces";
+import { useLens } from "./lens";
 import { useApp } from "./state";
 import { ClientAvatar } from "./ui";
 
 /** Sticky red strip with overdue pieces. Sits above the "esta semana" block. */
 export function OverdueStrip({ variant, onOpen }: { variant: "desktop" | "mobile"; onOpen: (id: string) => void }) {
-  const { pieces, now, tz, base } = useApp();
-  const list = overduePieces(pieces, now);
+  const { now, tz, base } = useApp();
+  const lens = useLens();
+  const list = lens.overdue;
   if (!list.length) return null;
   const mobile = variant === "mobile";
   return (
@@ -24,15 +26,15 @@ export function OverdueStrip({ variant, onOpen }: { variant: "desktop" | "mobile
     >
       <div className="flex items-center justify-between gap-3">
         <span className="text-sm font-semibold" style={{ color: "#FFE3E3" }}>
-          Atrasadas: {list.length} {plural(list.length, "pieza", "piezas")}
+          {lens.publish ? "Sin publicar" : "Atrasadas"}: {list.length} {plural(list.length, "pieza", "piezas")}
         </span>
-        <Link
+        {!lens.publish && <Link
           href={`${base}/grabar`}
           className="flex h-8 flex-none items-center rounded-lg px-3 text-[13px] font-semibold no-underline hover:opacity-90"
           style={{ background: "#FF5C5C", color: "#1A0506" }}
         >
           Grabar todo de corrido
-        </Link>
+        </Link>}
       </div>
       <div className={mobile ? "no-scrollbar -mx-3.5 flex gap-1.5 overflow-x-auto px-3.5" : "flex flex-wrap gap-x-2 gap-y-1"}>
         {list.map((p) => (
@@ -44,7 +46,7 @@ export function OverdueStrip({ variant, onOpen }: { variant: "desktop" | "mobile
           >
             <span className="h-3 w-[3px] flex-none rounded-sm" style={{ background: CHANNELS[p.channel].color }} />
             <span className="font-medium">{p.title}</span>
-            <span className="ml-auto pl-1 text-xs font-semibold whitespace-nowrap text-red">{urgency(p.record_due_at, now, tz).text}</span>
+            <span className="ml-auto pl-1 text-xs font-semibold whitespace-nowrap text-red">{urgency(lens.dueOf(p), now, tz).text}</span>
           </button>
         ))}
       </div>
