@@ -89,7 +89,14 @@ export function PieceForm({ init }: { init: PieceFormInit }) {
   const status = saving || saveState === "dirty" ? "Guardando…" : saveState === "saved" ? "Guardado ✓" : null;
 
   return (
-    <form ref={formRef} action={action} onChange={scheduleSave} className="flex flex-col gap-4">
+    <form
+      ref={formRef}
+      action={action}
+      onChange={scheduleSave}
+      // With autosave, Enter just saves now instead of submitting the form.
+      onSubmit={autosave ? (e) => { e.preventDefault(); scheduleSave(); } : undefined}
+      className="flex flex-col gap-4"
+    >
       {init.id && <input type="hidden" name="id" value={init.id} />}
       <input type="hidden" name="client_id" value={init.client_id} />
       <div className="grid gap-4 sm:grid-cols-[200px_1fr]">

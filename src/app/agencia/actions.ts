@@ -64,7 +64,9 @@ export async function savePiece(_: SaveState, form: FormData): Promise<SaveState
   if (!isDay(publishDay)) publishDay = addDays(dueDay, gap);
   if (!isDay(dueDay)) dueDay = addDays(publishDay, -gap);
 
-  const pieceId = await repo.savePiece({
+  let pieceId: string;
+  try {
+    pieceId = await repo.savePiece({
     id,
     client_id,
     channel,
@@ -77,7 +79,14 @@ export async function savePiece(_: SaveState, form: FormData): Promise<SaveState
     publish_at: zonedTime(publishDay, "12:00", tz).toISOString(),
     record_due_at: zonedTime(dueDay, DEADLINE_TIME, tz).toISOString(),
     edit_days: editDays,
-  });
+    });
+  } catch (e) {
+    // Show the problem next to the form instead of crashing the page.
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("[savePiece]", msg);
+    if (/pieces_title_check/.test(msg)) return { error: "La base aún no acepta títulos tan largos. Aplica la migración de 10 palabras en Supabase." };
+    return { error: `No se pudo guardar: ${msg}` };
+  }
   refresh(client_id);
   if (!id) redirect(`/agencia/pieza/${pieceId}`);
   return {};
