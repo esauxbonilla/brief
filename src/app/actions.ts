@@ -21,6 +21,13 @@ export async function setRecorded(pieceId: string, recorded: boolean) {
   return status;
 }
 
+export async function setPublished(pieceId: string, published: boolean) {
+  await session();
+  const status = await repo.setPublished(pieceId, published);
+  revalidatePath("/", "layout");
+  return status;
+}
+
 export async function toggleShot(shotId: string, done: boolean) {
   await session();
   await repo.toggleShot(shotId, done);

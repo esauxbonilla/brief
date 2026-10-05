@@ -3,18 +3,21 @@
 import Link from "next/link";
 import { useState } from "react";
 import { CHANNELS } from "@/lib/constants";
-import { addDays, dayKey, deadlineSuffix, keyParts, MESES, SHOW_DEADLINE_TIME, shortLabel, urgency, weekStart, type DayKey } from "@/lib/dates";
-import { cardStyle, currentWeek, isClientsTurn, isPending, plural, thisWeekPending } from "@/lib/pieces";
+import { addDays, dayIndex, dayKey, deadlineSuffix, keyParts, MESES, SHOW_DEADLINE_TIME, shortLabel, urgency, weekStart, type DayKey } from "@/lib/dates";
+import { currentWeek, inPublishView, isPending, plural, thisWeekPending, thisWeekToPublish } from "@/lib/pieces";
 import type { PieceFull } from "@/lib/types";
-import { ActionButtons, BriefTab, DetailHeader, DetailTabs, GuionTab, RefsTab, useDetailOverlays, type Tab } from "./PieceDetail";
+import { useLens } from "./lens";
+import { ActionButtons, BriefTab, DetailHeader, DetailTabs, GuionTab, PublishCard, RefsTab, useDetailOverlays, type Tab } from "./PieceDetail";
 import { AccountMenu, OverdueStrip } from "./shared";
 import { useApp } from "./state";
-import { AgencyAvatar, ChannelChips, ClientAvatar, NewPieceButton, Pill, StatusLegend, UrgencyText } from "./ui";
+import { AgencyAvatar, ChannelChips, ClientAvatar, ModeToggle, NewPieceButton, Pill, StatusLegend, UrgencyText } from "./ui";
 
 const WEEKDAYS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 
 export function DesktopCalendar() {
-  const { pieces, now, tz, client, agency, filter, setFilter, select, base } = useApp();
+  const { pieces, now, tz, client, agency, filter, setFilter, select, base, mode, setMode } = useApp();
+  const lens = useLens();
+  const counts = { grabar: thisWeekPending(pieces, now, tz).length, publicar: thisWeekToPublish(pieces, now, tz).length };
   const today = dayKey(now, tz);
   const [ym, setYm] = useState(() => ({ y: keyParts(today).y, m: keyParts(today).m }));
   const week = currentWeek(now, tz);
@@ -24,7 +27,7 @@ export function DesktopCalendar() {
   const openPiece = (id: string) => {
     const p = pieces.find((x) => x.id === id);
     if (p) {
-      const k = keyParts(dayKey(p.record_due_at, tz));
+      const k = keyParts(lens.dayOf(p));
       setYm({ y: k.y, m: k.m });
     }
     setFilter("all");
@@ -38,14 +41,14 @@ export function DesktopCalendar() {
   const start = weekStart(first);
   const end = addDays(weekStart(`${ym.y}-${pad(ym.m + 1)}-${pad(lastDay)}`), 6);
   const byDay = new Map<DayKey, PieceFull[]>();
-  for (const p of pieces) {
-    const k = dayKey(p.record_due_at, tz);
+  for (const p of lens.pieces) {
+    const k = lens.dayOf(p);
     byDay.set(k, [...(byDay.get(k) ?? []), p]);
   }
   const days: DayKey[] = [];
   for (let k = start; k <= end; k = addDays(k, 1)) days.push(k);
 
-  const wk = thisWeekPending(pieces, now, tz);
+  const wk = lens.week;
   const lastDue = wk.at(-1);
   const nextDue = wk[0];
 
@@ -60,29 +63,30 @@ export function DesktopCalendar() {
                 <AccountMenu size={26} align="left" />
                 {client.name} · Calendario de contenido · con {agency.name}
               </div>
-              <div className="flex items-center gap-3.5">
+              <div className="flex flex-wrap items-center gap-3.5">
                 <h1 className="m-0 min-w-[220px] text-[30px] font-semibold tracking-[-0.02em]">{MESES[ym.m]} {ym.y}</h1>
                 <div className="flex gap-1.5">
                   <NavBtn label="Mes anterior" onClick={() => shift(-1)}>‹</NavBtn>
                   <NavBtn label="Mes siguiente" onClick={() => shift(1)}>›</NavBtn>
                   <button onClick={goToday} className="h-[34px] cursor-pointer rounded-lg border bg-transparent px-3 text-[13px] text-text-2c hover:text-white" style={{ borderColor: "rgba(255,255,255,0.1)" }}>Hoy</button>
                 </div>
+                <ModeToggle mode={mode} setMode={setMode} counts={counts} />
               </div>
             </div>
 
             <div className="flex min-w-[340px] items-center gap-[18px] rounded-xl border border-amber bg-amber-block px-[18px] py-3.5">
               <div className="flex flex-col gap-1">
-                <div className="text-[13px]" style={{ color: "#F2DDB0" }}>Lo que tienes que grabar esta semana</div>
+                <div className="text-[13px]" style={{ color: "#F2DDB0" }}>Lo que tienes que {lens.publish ? "publicar" : "grabar"} esta semana</div>
                 <div className="flex items-baseline gap-2">
                   <span className="text-[34px] leading-none font-bold tracking-[-0.02em] text-amber">{wk.length}</span>
                   <span className="text-lg font-semibold" style={{ color: "#FFF4DE" }}>{plural(wk.length, "pieza", "piezas")}</span>
                 </div>
                 <div className="text-[13px]" style={{ color: "#FFF4DE" }}>
-                  Entrega: <strong className="font-semibold">{lastDue ? `${SHOW_DEADLINE_TIME ? "antes del" : "el"} ${shortLabel(dayKey(lastDue.record_due_at, tz))}${deadlineSuffix()}` : "nada pendiente"}</strong>
+                  {lens.publish ? "Último día: " : "Entrega: "}<strong className="font-semibold">{lastDue ? `${SHOW_DEADLINE_TIME && !lens.publish ? "antes del" : "el"} ${shortLabel(lens.dayOf(lastDue))}${lens.publish ? "" : deadlineSuffix()}` : "nada pendiente"}</strong>
                 </div>
                 {nextDue && (
                   <div className="mt-0.5 flex items-center gap-1.5 text-xs" style={{ color: "#F2DDB0" }}>
-                    Lo próximo: <UrgencyText u={urgency(nextDue.record_due_at, now, tz)} size={12} />
+                    Lo próximo: <UrgencyText u={urgency(lens.dueOf(nextDue), now, tz)} size={12} />
                   </div>
                 )}
               </div>
@@ -92,9 +96,9 @@ export function DesktopCalendar() {
                   disabled={!wk.length}
                   className="h-[38px] cursor-pointer rounded-lg border-none bg-amber px-3.5 text-[13px] font-semibold text-amber-ink hover:bg-amber-hover disabled:cursor-default disabled:opacity-50"
                 >
-                  Ver brief
+                  {lens.publish ? "Ver qué publicar" : "Ver brief"}
                 </button>
-                {wk.length > 1 && (
+                {!lens.publish && wk.length > 1 && (
                   <Link href={`${base}/grabar`} className="flex h-[34px] items-center justify-center rounded-lg border px-3 text-[13px] font-medium no-underline hover:bg-white/5" style={{ borderColor: "rgba(245,184,61,0.5)", color: "#FFF4DE" }}>
                     Grabar todo de corrido
                   </Link>
@@ -137,12 +141,19 @@ function NavBtn({ label, onClick, children }: { label: string; onClick: () => vo
 }
 
 function DayCell({ k, inMonth, isToday, thisWeek, items }: { k: DayKey; inMonth: boolean; isToday: boolean; thisWeek: boolean; items: PieceFull[] }) {
-  const { edit } = useApp();
+  const { edit, byId, tz } = useApp();
+  const lens = useLens();
   const [over, setOver] = useState(false);
+  // In the publish view a drop sets the publish day; both dates move together.
+  const moveTo = (id: string) => {
+    const p = byId(id);
+    if (!edit || !p) return;
+    edit.move(id, lens.publish ? addDays(k, dayIndex(dayKey(p.record_due_at, tz)) - dayIndex(dayKey(p.publish_at, tz))) : k);
+  };
   const drop = edit && {
     onDragOver: (e: React.DragEvent) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setOver(true); },
     onDragLeave: () => setOver(false),
-    onDrop: (e: React.DragEvent) => { e.preventDefault(); setOver(false); const id = e.dataTransfer.getData("text/plain"); if (id) edit.move(id, k); },
+    onDrop: (e: React.DragEvent) => { e.preventDefault(); setOver(false); const id = e.dataTransfer.getData("text/plain"); if (id) moveTo(id); },
   };
   return (
     <div
@@ -176,11 +187,12 @@ function DayCell({ k, inMonth, isToday, thisWeek, items }: { k: DayKey; inMonth:
 
 function MonthCard({ p, inMonth }: { p: PieceFull; inMonth: boolean }) {
   const { now, tz, filter, selectedId, select, client, agency, edit } = useApp();
+  const lens = useLens();
   const [dragging, setDragging] = useState(false);
-  const st = cardStyle(p, now, tz);
+  const st = lens.style(p);
   const dim = filter !== "all" && filter !== p.channel;
   const sel = selectedId === p.id;
-  const mine = isClientsTurn(p);
+  const mine = lens.mine(p);
   return (
     <button
       onClick={() => select(p.id)}
@@ -194,7 +206,7 @@ function MonthCard({ p, inMonth }: { p: PieceFull; inMonth: boolean }) {
       <div className="w-[3px] flex-none self-stretch" style={{ background: CHANNELS[p.channel].color }} />
       <div className="flex min-w-0 flex-1 flex-col gap-[7px] py-[7px] pr-2 pl-[9px]">
         <div className="title-wrap text-[13px] leading-[1.25]" style={{ fontWeight: st.titleWeight, color: st.titleColor }}>{p.title}</div>
-        {mine && <div className="leading-[1.5]"><UrgencyText u={urgency(p.record_due_at, now, tz)} size={11} wrap /></div>}
+        {mine && <div className="leading-[1.5]"><UrgencyText u={urgency(lens.dueOf(p), now, tz)} size={11} wrap /></div>}
         <div className="flex flex-wrap items-center justify-between gap-x-1.5 gap-y-[5px]">
           <Pill bg={st.pillBg} fg={st.pillFg}>{st.pill}</Pill>
           {mine ? <ClientAvatar initials={client.initials} title="Te toca a ti" /> : <AgencyAvatar initials={agency.initials} title={`Lo tiene ${agency.name}`} />}
@@ -205,7 +217,8 @@ function MonthCard({ p, inMonth }: { p: PieceFull; inMonth: boolean }) {
 }
 
 function DetailPanel() {
-  const { byId, selectedId, now, tz, edit } = useApp();
+  const { byId, selectedId, edit } = useApp();
+  const lens = useLens();
   const p = selectedId ? byId(selectedId) : undefined;
   const [tab, setTab] = useState<Tab>("brief");
   const [lastId, setLastId] = useState(selectedId);
@@ -214,8 +227,9 @@ function DetailPanel() {
     setTab("brief");
   }
   const { openRef, openReading, overlays } = useDetailOverlays(p);
-  const st = p ? cardStyle(p, now, tz) : null;
-  const action = p && isPending(p);
+  const st = p ? lens.style(p) : null;
+  const action = p && !lens.publish && isPending(p);
+  const showPublish = p && lens.publish && inPublishView(p);
 
   return (
     <div className={`sticky top-7 flex min-w-[320px] flex-col gap-2.5 ${edit ? "flex-[0_1_520px]" : "flex-[0_1_420px]"}`}>
@@ -230,10 +244,11 @@ function DetailPanel() {
           <div className="no-scrollbar min-w-0 flex-1 overflow-y-auto p-4">{edit.panel(p)}</div>
         </div>
       ) : (
-        <div className="flex max-h-[calc(100vh-80px)] overflow-hidden rounded-[14px] border bg-sheet" style={{ borderColor: st!.bg === "#2A1214" ? "rgba(255,92,92,0.6)" : action ? "rgba(245,184,61,0.55)" : "rgba(255,255,255,0.08)" }}>
+        <div className="flex max-h-[calc(100vh-80px)] overflow-hidden rounded-[14px] border bg-sheet" style={{ borderColor: st!.bg === "#2A1214" ? "rgba(255,92,92,0.6)" : action || (showPublish && lens.mine(p)) ? "rgba(245,184,61,0.55)" : "rgba(255,255,255,0.08)" }}>
           <div className="w-1 flex-none" style={{ background: CHANNELS[p.channel].color }} />
           <div className="no-scrollbar flex min-w-0 flex-1 flex-col gap-5 overflow-y-auto px-[22px] pt-[22px] pb-5">
             <DetailHeader p={p} variant="desktop" />
+            {showPublish && <PublishCard p={p} />}
             <DetailTabs p={p} tab={tab} setTab={setTab} />
             {tab === "brief" && <BriefTab p={p} variant="desktop" />}
             {tab === "guion" && <GuionTab p={p} onOpenRef={openRef} onRead={openReading} />}

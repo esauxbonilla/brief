@@ -162,3 +162,30 @@ export function NewPieceButton({ onPick, disabled, label, className, children }:
     </>
   );
 }
+
+/** "Grabar | Publicar": which date the calendar is organized by. */
+export function ModeToggle({ mode, setMode, counts, full = false }: { mode: "grabar" | "publicar"; setMode: (m: "grabar" | "publicar") => void; counts: { grabar: number; publicar: number }; full?: boolean }) {
+  const opts: ["grabar" | "publicar", string][] = [["grabar", "Grabar"], ["publicar", "Publicar"]];
+  return (
+    <div role="tablist" aria-label="Ver calendario por" className={`flex gap-1 rounded-[11px] bg-surface-4 p-[3px] ${full ? "w-full" : ""}`}>
+      {opts.map(([k, label]) => {
+        const a = mode === k;
+        return (
+          <button
+            key={k}
+            role="tab"
+            aria-selected={a}
+            onClick={() => setMode(k)}
+            className={`flex h-[34px] cursor-pointer items-center justify-center gap-1.5 rounded-lg border-none px-3.5 text-sm transition-colors duration-200 ${full ? "flex-1" : ""}`}
+            style={{ fontWeight: a ? 600 : 500, background: a ? "#2A2C31" : "transparent", color: a ? "#FFFFFF" : "#9DA1A8" }}
+          >
+            {label}
+            {counts[k] > 0 && (
+              <span className="flex h-[18px] min-w-[18px] items-center justify-center rounded-[9px] bg-amber px-1 text-[11px] font-bold text-amber-ink">{counts[k]}</span>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}

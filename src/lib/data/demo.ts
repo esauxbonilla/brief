@@ -36,6 +36,9 @@ function seed(): Db {
       format: d.format, objective: d.objective, hook: d.hook, notes: d.notes,
       publish_at: at(s.due + d.editDays + 1), record_due_at: at(s.due), edit_days: d.editDays,
       brief_sent_at: d.briefSent ? at(s.due - 7) : null, redo_reason: s.redoReason ?? null, received_at: null,
+      final_url: s.status === "listo" ? "https://drive.google.com/drive/folders/demo-final" : null,
+      caption: s.status === "listo" ? `${s.title} 💪\n\nGuárdalo para tu próximo entreno y compártelo con quien lo necesite.\n\n#fitness #entrenamiento` : null,
+      published_at: null,
     });
     d.shots.forEach((text, i) => db.shots.push({ id: uid("shot"), piece_id: id, position: i, text, done: !isPending(s) }));
     const blockIds = (s.blocks ?? []).map((b, i) => {
@@ -93,6 +96,13 @@ export const demoRepo: Repo = {
     const p = clientPiece(id);
     if (recorded && isPending(p)) p.status = "grabado";
     else if (!recorded && p.status === "grabado" && !p.received_at) p.status = p.redo_reason ? "rehacer" : "grabar";
+    return p.status;
+  },
+  async setPublished(id, published) {
+    const p = clientPiece(id);
+    if (p.channel === "extra") return p.status;
+    if (published && p.status === "listo") Object.assign(p, { status: "publicado", published_at: new Date().toISOString() });
+    else if (!published && p.status === "publicado" && p.published_at) Object.assign(p, { status: "listo", published_at: null });
     return p.status;
   },
   async toggleShot(shotId, done) {

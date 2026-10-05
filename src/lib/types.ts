@@ -84,6 +84,12 @@ export interface Piece {
   brief_sent_at: string | null;
   redo_reason: string | null;
   received_at: string | null;
+  /** Link (Drive) to the finished piece the client publishes. */
+  final_url?: string | null;
+  /** Text to paste when publishing. */
+  caption?: string | null;
+  /** When the client marked it as published. */
+  published_at?: string | null;
 }
 
 /** A piece with everything the client views need. */

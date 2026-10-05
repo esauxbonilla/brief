@@ -40,6 +40,8 @@ export interface PieceFormInit {
   publish_date: string;
   record_due_date: string;
   edit_days: number;
+  final_url?: string;
+  caption?: string;
 }
 
 export function PieceForm({ init }: { init: PieceFormInit }) {
@@ -166,6 +168,17 @@ export function PieceForm({ init }: { init: PieceFormInit }) {
           <textarea name="notes" defaultValue={init.notes} rows={6} className={`${field} py-2.5`} style={fieldStyle} />
         </F>
       </div>
+      {channel !== "extra" && (
+        <div className="flex flex-col gap-3 rounded-xl border p-3.5" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
+          <div className="text-[11px] font-semibold tracking-[0.08em] text-text-3 uppercase">Para publicar</div>
+          <F label="Link del final (Drive)" hint="lo abre el cliente para descargarlo">
+            <input type="url" name="final_url" defaultValue={init.final_url ?? ""} placeholder="https://drive.google.com/…" className={`${field} h-10`} style={fieldStyle} />
+          </F>
+          <F label="Texto para publicar (caption)" hint="el cliente lo copia">
+            <textarea name="caption" defaultValue={init.caption ?? ""} rows={4} className={`${field} py-2.5`} style={fieldStyle} />
+          </F>
+        </div>
+      )}
       {(autosave ? saveError : state.error) && <span className="text-[13px] text-red">{autosave ? saveError : state.error}</span>}
       {autosave ? (
         <div className="h-5 text-[13px] text-text-3" aria-live="polite">{status}</div>
@@ -466,6 +479,7 @@ export function PieceEditor({ piece: p, tz, now }: { piece: PieceFull; tz: strin
             id: p.id, client_id: p.client_id, channel: p.channel, title: p.title === "Sin título" ? "" : p.title, format: p.format ?? "", objective: p.objective ?? "",
             hook: p.hook ?? "", notes: p.notes.join("\n"), shots: p.shots.map((x) => x.text).join("\n"),
             publish_date: dayKey(p.publish_at, tz), record_due_date: dayKey(p.record_due_at, tz), edit_days: p.edit_days,
+            final_url: p.final_url ?? "", caption: p.caption ?? "",
           }}
         />
       </Section>
