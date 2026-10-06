@@ -193,6 +193,20 @@ export async function setStatus(id: string, status: "listo" | "publicado" | "edi
   refresh(p.client_id);
 }
 
+/**
+ * Content made without recording (the agency already had the material): skips
+ * "Por grabar" and goes straight to the client's "Publicar" view. Drafts are
+ * sent at the same time so the client can see them.
+ */
+export async function markReadyToPublish(id: string) {
+  const p = await ownPiece(id);
+  if (p.channel === "extra") throw new Error("Las tareas Extra no se publican");
+  if (p.status === "cancelado" || p.status === "publicado") throw new Error("Esta pieza ya no está activa");
+  if (!p.brief_sent_at) await repo.sendBriefs([id]);
+  await repo.setStatus(id, "listo");
+  refresh(p.client_id);
+}
+
 export async function markReceived(id: string) {
   const p = await ownPiece(id);
   await repo.markReceived(id);

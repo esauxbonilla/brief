@@ -415,6 +415,17 @@ export function PieceStatusActions({ piece }: { piece: PieceFull }) {
     <div className="flex flex-wrap gap-2">
       {s === "borrador" && <Btn kind="primary" disabled={pending} onClick={() => run(() => A.sendBriefs([piece.id]))}>Enviar brief</Btn>}
       {s === "edicion" && <Btn kind="primary" disabled={pending} onClick={() => run(() => A.setStatus(piece.id, "listo"))}>Marcar como listo</Btn>}
+      {piece.channel !== "extra" && ["borrador", "grabar", "rehacer", "grabado"].includes(s) && (
+        <Btn
+          disabled={pending}
+          onClick={() =>
+            (piece.final_url || confirm("Aún no pusiste el link del final. ¿Marcarla lista para publicar de todos modos?")) &&
+            run(() => A.markReadyToPublish(piece.id))
+          }
+        >
+          Ya está lista, solo publicar
+        </Btn>
+      )}
       {s === "listo" && <Btn kind="primary" disabled={pending} onClick={() => run(() => A.setStatus(piece.id, "publicado"))}>Marcar como publicado</Btn>}
       {s !== "cancelado" && s !== "publicado" && (
         <Btn kind="danger" disabled={pending} onClick={() => confirm("¿Cancelar esta pieza? Desaparece del calendario del cliente.") && run(() => A.cancelPiece(piece.id))}>Cancelar pieza</Btn>
