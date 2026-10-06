@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState, type PointerEvent, type TouchEvent } from "react";
-import { CHANNELS } from "@/lib/constants";
+import { CHANNELS, isTask } from "@/lib/constants";
 import { addDays, dayIndex, dayKey, deadlineSuffix, DIAS_LETRA, keyParts, longDayLabel, MESES, shortLabel, urgency, weekRangeLabel, weekStart, type DayKey } from "@/lib/dates";
-import { currentWeek, inPublishView, inWeek, isPending, plural, thisWeekPending, thisWeekToPublish } from "@/lib/pieces";
+import { currentWeek, inPublishView, inWeek, isPending, isToPublish, plural, thisWeekPending, thisWeekToPublish } from "@/lib/pieces";
 import type { PieceFull } from "@/lib/types";
 import { useLens } from "./lens";
 import { ActionButtons, BriefTab, DetailHeader, DetailTabs, GuionTab, PublishCard, RefsTab, useDetailOverlays, type Tab } from "./PieceDetail";
@@ -378,7 +378,7 @@ function BottomSheet({ p, open, onClose }: { p: PieceFull | undefined; open: boo
               <DetailTabs p={p} tab={tab} setTab={setTab} />
             </div>
             <div className="no-scrollbar flex flex-1 flex-col gap-5 overflow-y-auto overscroll-contain px-[18px] pt-[18px] pb-6">
-              {lens.publish && inPublishView(p) && tab === "brief" && <PublishCard p={p} />}
+              {tab === "brief" && ((lens.publish && inPublishView(p)) || isToPublish(p) || (p.status === "publicado" && !isTask(p))) && <PublishCard p={p} />}
               {tab === "brief" && <BriefTab p={p} variant="mobile" />}
               {tab === "guion" && <GuionTab p={p} onOpenRef={openRef} onRead={openReading} showCta={false} />}
               {tab === "refs" && <RefsTab p={p} onOpenRef={openRef} />}
