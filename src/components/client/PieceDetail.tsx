@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { firstUrl, siteName, withoutUrls } from "@/lib/links";
 import { CHANNELS, isTask } from "@/lib/constants";
 import { dayKey, dayMonth, hhmm, shortLabel, urgency } from "@/lib/dates";
-import { isClientsTurn, isPending } from "@/lib/pieces";
+import { isClientsTurn, isPending, isToPublish } from "@/lib/pieces";
 import type { PieceFull, PieceReference } from "@/lib/types";
 import { useLens } from "./lens";
 import { ImageViewer, ReadingMode } from "./overlays";
@@ -29,7 +29,7 @@ export function DetailHeader({ p, variant }: { p: PieceFull; variant: Variant })
   const lens = useLens();
   const st = lens.style(p);
   const ch = CHANNELS[p.channel];
-  const mine = lens.mine(p);
+  const mine = lens.mine(p) || isToPublish(p);
   const pill = mine ? { bg: st.pillBg === "#F5B83D1F" ? "#F5B83D" : st.pillBg, fg: st.pillBg === "#F5B83D1F" ? "#1A1205" : st.pillFg } : { bg: st.pillBg, fg: st.pillFg };
   const u = urgency(lens.dueOf(p), now, tz);
 
@@ -43,7 +43,7 @@ export function DetailHeader({ p, variant }: { p: PieceFull; variant: Variant })
         <h2 className="m-0 text-2xl leading-[1.15] font-semibold tracking-[-0.015em]" style={{ textWrap: "balance" }}>{p.title}</h2>
         <div className="flex items-center gap-2 text-[13px] text-text-2c">
           {mine ? <ClientAvatar initials={client.initials} size={20} /> : <AgencyAvatar initials={agency.initials} size={20} />}
-          <span>{mine ? (isTask(p) ? "Te toca a ti" : lens.publish ? "Te toca a ti publicarlo" : "Te toca a ti grabarlo") : p.status === "publicado" ? "Ya está publicado" : `Lo tiene ${agency.name}`}</span>
+          <span>{mine ? (isTask(p) ? "Te toca a ti" : lens.publish || isToPublish(p) ? "Te toca a ti publicarlo" : "Te toca a ti grabarlo") : p.status === "publicado" ? "Ya está publicado" : `Lo tiene ${agency.name}`}</span>
         </div>
       </div>
     );

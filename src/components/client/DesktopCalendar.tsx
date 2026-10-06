@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { CHANNELS } from "@/lib/constants";
+import { CHANNELS, isTask } from "@/lib/constants";
 import { addDays, dayIndex, dayKey, deadlineSuffix, keyParts, MESES, SHOW_DEADLINE_TIME, shortLabel, urgency, weekStart, type DayKey } from "@/lib/dates";
-import { currentWeek, inPublishView, isPending, plural, thisWeekPending, thisWeekToPublish } from "@/lib/pieces";
+import { currentWeek, inPublishView, isPending, isToPublish, plural, thisWeekPending, thisWeekToPublish } from "@/lib/pieces";
 import type { PieceFull } from "@/lib/types";
 import { useLens } from "./lens";
 import { ActionButtons, BriefTab, DetailHeader, DetailTabs, GuionTab, PublishCard, RefsTab, useDetailOverlays, type Tab } from "./PieceDetail";
@@ -229,7 +229,8 @@ function DetailPanel() {
   const { openRef, openReading, overlays } = useDetailOverlays(p);
   const st = p ? lens.style(p) : null;
   const action = p && !lens.publish && isPending(p);
-  const showPublish = p && lens.publish && inPublishView(p);
+  // Ready or published pieces always show what to publish, whichever view opened them.
+  const showPublish = p && ((lens.publish && inPublishView(p)) || isToPublish(p) || (p.status === "publicado" && !isTask(p)));
 
   return (
     <div className={`sticky top-7 flex min-w-[320px] flex-col gap-2.5 ${edit ? "flex-[0_1_520px]" : "flex-[0_1_420px]"}`}>
@@ -244,7 +245,7 @@ function DetailPanel() {
           <div className="no-scrollbar min-w-0 flex-1 overflow-y-auto p-4">{edit.panel(p)}</div>
         </div>
       ) : (
-        <div className="flex max-h-[calc(100vh-80px)] overflow-hidden rounded-[14px] border bg-sheet" style={{ borderColor: st!.bg === "#2A1214" ? "rgba(255,92,92,0.6)" : action || (showPublish && lens.mine(p)) ? "rgba(245,184,61,0.55)" : "rgba(255,255,255,0.08)" }}>
+        <div className="flex max-h-[calc(100vh-80px)] overflow-hidden rounded-[14px] border bg-sheet" style={{ borderColor: st!.bg === "#2A1214" ? "rgba(255,92,92,0.6)" : action || (showPublish && isToPublish(p)) ? "rgba(245,184,61,0.55)" : "rgba(255,255,255,0.08)" }}>
           <div className="w-1 flex-none" style={{ background: CHANNELS[p.channel].color }} />
           <div className="no-scrollbar flex min-w-0 flex-1 flex-col gap-5 overflow-y-auto px-[22px] pt-[22px] pb-5">
             <DetailHeader p={p} variant="desktop" />
