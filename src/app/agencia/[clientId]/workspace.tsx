@@ -34,7 +34,7 @@ export function ClientWorkspace({ client, agency, pieces, serverNow }: {
       setOpened((o) => ({ id, n: o.n + 1 }));
       setView("calendario");
     });
-  const panel = useCallback((p: PieceFull) => <PieceEditor piece={p} tz={client.tz} now={serverNow} />, [client.tz, serverNow]);
+  const panel = useCallback((p: PieceFull) => <PieceEditor key={p.id} piece={p} tz={client.tz} now={serverNow} />, [client.tz, serverNow]);
 
   return (
     <div className="flex flex-col">

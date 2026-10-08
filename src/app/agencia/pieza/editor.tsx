@@ -65,16 +65,23 @@ export function PieceForm({ init }: { init: PieceFormInit }) {
   const [saving, startSave] = useTransition();
   const [saveState, setSaveState] = useState<"idle" | "dirty" | "saved" | "error">("idle");
   const [saveError, setSaveError] = useState<string | null>(null);
-  useEffect(() => () => clearTimeout(timer.current), []);
+  // Unsaved changes when the editor closes (e.g. another card is opened) are sent right away.
+  const pendingFd = useRef<FormData | null>(null);
+  useEffect(() => () => {
+    clearTimeout(timer.current);
+    if (pendingFd.current) void A.savePiece({}, pendingFd.current).catch(() => {});
+  }, []);
 
   const scheduleSave = () => {
     if (!autosave) return;
     setSaveState("dirty");
+    if (formRef.current) pendingFd.current = new FormData(formRef.current);
     clearTimeout(timer.current);
     timer.current = setTimeout(() => {
       const form = formRef.current;
       if (!form) return;
       const fd = new FormData(form);
+      pendingFd.current = null;
       startSave(async () => {
         try {
           const res = await A.savePiece({}, fd);
@@ -202,13 +209,21 @@ export function ScriptEditor({ piece }: { piece: PieceFull }) {
   const [status, setStatus] = useState<"idle" | "dirty" | "saved" | "error">("idle");
   const [saving, startSave] = useTransition();
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  useEffect(() => () => clearTimeout(timer.current), []);
+  // Pending boxes belong to this piece; flushed to it if the editor closes first.
+  const pending = useRef<string[] | null>(null);
+  const pieceId = piece.id;
+  useEffect(() => () => {
+    clearTimeout(timer.current);
+    if (pending.current) void A.saveScriptBoxes(pieceId, pending.current).catch(() => {});
+  }, [pieceId]);
 
   const update = (next: string[]) => {
     setBoxes(next);
     setStatus("dirty");
+    pending.current = next;
     clearTimeout(timer.current);
     timer.current = setTimeout(() => {
+      pending.current = null;
       startSave(async () => {
         try {
           await A.saveScriptBoxes(piece.id, next);
@@ -496,11 +511,11 @@ export function PieceEditor({ piece: p, tz, now }: { piece: PieceFull; tz: strin
       </Section>
       {p.channel !== "extra" && (
         <Section title="Guion">
-          <ScriptEditor piece={p} />
+          <ScriptEditor key={p.id} piece={p} />
         </Section>
       )}
       <Section title="Referencias">
-        <References piece={p} />
+        <References key={p.id} piece={p} />
       </Section>
       {p.status !== "grabado" && p.channel !== "extra" && (
         <Section title="Material del cliente">
