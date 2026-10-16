@@ -117,6 +117,46 @@ export async function quickCreate(clientId: string, recordDay: string, channel: 
   return id;
 }
 
+/**
+ * Copy of a card as a new draft on the same days: brief, takes, script and the
+ * agency's references. Not sent, nothing recorded, no final or caption.
+ */
+export async function duplicatePiece(id: string): Promise<string> {
+  const p = await ownPiece(id);
+  const words = p.title.split(" ");
+  const title = words.length < MAX_TITLE_WORDS && p.title !== UNTITLED ? `${p.title} (copia)` : p.title;
+  const copy = await repo.savePiece({
+    client_id: p.client_id,
+    channel: p.channel,
+    title,
+    format: p.format,
+    objective: p.objective,
+    hook: p.hook,
+    notes: p.notes,
+    shots: p.shots.map((s) => s.text),
+    publish_at: p.publish_at,
+    record_due_at: p.record_due_at,
+    edit_days: p.edit_days,
+  });
+  if (p.blocks.length) {
+    await repo.setBlocks(copy, p.blocks.map((b) => ({ label: b.label, duration: b.duration, lines: b.lines, note: b.note })));
+  }
+  const fresh = p.blocks.length ? await repo.agencyPiece(copy) : null;
+  for (const r of p.references) {
+    const pos = p.blocks.findIndex((b) => b.id === r.block_id);
+    await repo.addReference({
+      piece_id: copy,
+      block_id: pos >= 0 ? fresh?.blocks[pos]?.id ?? null : null,
+      image_url: r.image_url,
+      title: r.title,
+      note: r.note,
+      requested_from_client: r.requested_from_client,
+    });
+  }
+  refresh(p.client_id);
+  return copy;
+}
+
 /** Drag and drop: the recording day moves and the publish day moves with it. */
 export async function movePiece(id: string, recordDay: string) {
   const p = await ownPiece(id);
