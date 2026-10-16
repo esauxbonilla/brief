@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { signOut } from "@/app/login/actions";
 import { CHANNELS } from "@/lib/constants";
@@ -84,6 +85,7 @@ export function Toast() {
 /** The client's avatar; tapping it opens "Cerrar sesión". Plain avatar in the agency preview. */
 export function AccountMenu({ size, align }: { size: number; align: "left" | "right" }) {
   const { client, readOnly } = useApp();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, start] = useTransition();
   if (readOnly) return <ClientAvatar initials={client.initials} size={size} />;
@@ -100,6 +102,12 @@ export function AccountMenu({ size, align }: { size: number; align: "left" | "ri
             style={{ borderColor: "rgba(255,255,255,0.1)" }}
           >
             <span className="px-3 py-2 text-xs text-text-3">{client.name}</span>
+            <button
+              onClick={() => { setOpen(false); router.refresh(); }}
+              className="h-10 cursor-pointer rounded-lg border-none bg-transparent px-3 text-left text-sm font-medium text-text hover:bg-white/5"
+            >
+              Actualizar
+            </button>
             <button
               disabled={pending}
               onClick={() => start(() => signOut())}

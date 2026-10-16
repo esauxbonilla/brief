@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
 import * as agencyActions from "@/app/agencia/actions";
 import * as actions from "@/app/actions";
+import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/browser";
 import { addDays, dayIndex, dayKey, DEADLINE_TIME, zonedTime, type DayKey } from "@/lib/dates";
 import type { Agency, Channel, Client, PieceFull, Status } from "@/lib/types";
@@ -114,6 +115,24 @@ export function ClientState({
     const t = setInterval(() => setNow(new Date()), 60_000);
     return () => clearInterval(t);
   }, []);
+
+  // The client sees the agency's edits without closing the app: fresh data when
+  // the app comes back to the foreground and every minute while it's open.
+  // (Not in the agency panel, where the agency is the one editing.)
+  const router = useRouter();
+  const live = !agencyPanel;
+  useEffect(() => {
+    if (!live) return;
+    const reload = () => document.visibilityState === "visible" && router.refresh();
+    const t = setInterval(reload, 60_000);
+    document.addEventListener("visibilitychange", reload);
+    window.addEventListener("focus", reload);
+    return () => {
+      clearInterval(t);
+      document.removeEventListener("visibilitychange", reload);
+      window.removeEventListener("focus", reload);
+    };
+  }, [live, router]);
 
   const patch = useCallback((id: string, fn: (p: PieceFull) => PieceFull) => {
     setPieces((list) => list.map((p) => (p.id === id ? fn(p) : p)));
