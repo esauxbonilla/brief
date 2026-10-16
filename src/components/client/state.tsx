@@ -59,6 +59,11 @@ interface Ctx {
 
 const C = createContext<Ctx | null>(null);
 
+/** Same as useApp, but null outside a calendar (e.g. the standalone piece page). */
+export function useOptionalApp() {
+  return useContext(C);
+}
+
 export function useApp() {
   const v = useContext(C);
   if (!v) throw new Error("useApp fuera de ClientState");

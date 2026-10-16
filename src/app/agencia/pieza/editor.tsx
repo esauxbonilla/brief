@@ -9,6 +9,8 @@ import { blockToBox } from "@/lib/script-parse";
 import { supabaseBrowser } from "@/lib/supabase/browser";
 import { isDemo } from "@/lib/supabase/config";
 import type { Channel, PieceFull } from "@/lib/types";
+import { useRouter } from "next/navigation";
+import { useOptionalApp } from "@/components/client/state";
 import * as A from "../actions";
 import { Btn, ChannelTag, ReceivedActions, StatusPill, useAct } from "../ui";
 
@@ -425,7 +427,16 @@ export function References({ piece }: { piece: PieceFull }) {
 
 export function PieceStatusActions({ piece }: { piece: PieceFull }) {
   const { pending, run } = useAct();
+  const app = useOptionalApp();
+  const router = useRouter();
   const s = piece.status;
+  // Opens the copy: in the calendar panel, or its own page elsewhere.
+  const duplicate = () =>
+    run(async () => {
+      const id = await A.duplicatePiece(piece.id);
+      if (app) app.select(id);
+      else router.push(`/agencia/pieza/${id}`);
+    });
   return (
     <div className="flex flex-wrap gap-2">
       {s === "borrador" && <Btn kind="primary" disabled={pending} onClick={() => run(() => A.sendBriefs([piece.id]))}>Enviar brief</Btn>}
@@ -445,6 +456,7 @@ export function PieceStatusActions({ piece }: { piece: PieceFull }) {
       {s !== "cancelado" && s !== "publicado" && (
         <Btn kind="danger" disabled={pending} onClick={() => confirm("¿Cancelar esta pieza? Desaparece del calendario del cliente.") && run(() => A.cancelPiece(piece.id))}>Cancelar pieza</Btn>
       )}
+      <Btn disabled={pending} onClick={duplicate}>Duplicar</Btn>
       <Btn kind="danger" disabled={pending} onClick={() => confirm("¿Borrar la pieza definitivamente?") && run(() => A.deletePiece(piece.id))}>Borrar</Btn>
     </div>
   );
